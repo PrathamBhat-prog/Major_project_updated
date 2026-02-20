@@ -10,7 +10,6 @@ router = APIRouter(
     tags=["Patients"]
 )
 
-
 # ======================================================
 # DB Dependency
 # ======================================================
@@ -33,8 +32,8 @@ def create_patient(
 ):
     new_patient = models.Patient(
         name=patient.name,
-        age=patient.age,
-        gender=patient.gender,
+        dob=patient.dob,
+        notes=patient.notes,
         created_at=datetime.utcnow()
     )
 
@@ -53,7 +52,9 @@ def get_all_patients(
     db: Session = Depends(get_db),
     token: dict = Depends(utils.get_current_user)
 ):
-    return db.query(models.Patient).order_by(models.Patient.created_at.desc()).all()
+    return db.query(models.Patient).order_by(
+        models.Patient.created_at.desc()
+    ).all()
 
 
 # ======================================================
@@ -93,8 +94,8 @@ def update_patient(
         raise HTTPException(status_code=404, detail="Patient not found")
 
     patient.name = updated_data.name
-    patient.age = updated_data.age
-    patient.gender = updated_data.gender
+    patient.dob = updated_data.dob
+    patient.notes = updated_data.notes
 
     db.commit()
     db.refresh(patient)

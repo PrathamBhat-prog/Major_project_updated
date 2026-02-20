@@ -21,6 +21,17 @@ export default function CreatePatient() {
   const API_URL = process.env.REACT_APP_API_URL;
 
   // ============================
+  // CALCULATE AGE FROM DOB
+  // ============================
+  const calculateAge = (dob) => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const diff = Date.now() - birthDate.getTime();
+    const ageDate = new Date(diff);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  };
+
+  // ============================
   // HANDLE SUBMIT
   // ============================
   const submit = async (e) => {
@@ -36,7 +47,14 @@ export default function CreatePatient() {
     try {
       const payload = {
         name: form.name.trim(),
+
+        // 🔥 ADDED AGE (Backend expects this)
+        age: calculateAge(form.dob),
+
+        // Keeping existing fields
         dob: form.dob || "",
+        gender: form.gender,
+
         notes: `
 Gender: ${form.gender}
 Email: ${form.email || "N/A"}
@@ -45,7 +63,7 @@ Address: ${form.address || "N/A"}
         `.trim(),
       };
 
-      const res = await fetch(`${API_URL}/patients`, {
+      const res = await fetch(`${API_URL}/patients/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
