@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+python-dotenv
+boto3
+tensorflow
+numpy
+pillow
+pandas
+joblib
+reportlab
+huggingface_hub
+opencv-python
