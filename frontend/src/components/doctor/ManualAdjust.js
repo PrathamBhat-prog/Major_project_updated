@@ -13,32 +13,33 @@ export default function ManualAdjust() {
     previewImage,
     predictedLandmarks,
   } = location.state || {};
-// ================================
-// LANDMARK NAME MAP
-// ================================
-const landmarkNames = {
-  P1: "Sella",
-  P2: "Nasion",
-  P3: "Orbitale",
-  P4: "Porion",
-  P5: "Subspinale (A Point)",
-  P6: "Supramentale (B Point)",
-  P7: "Pogonion",
-  P8: "Menton",
-  P9: "Gonion",
-  P10: "Articulare",
-  P11: "Incision Inferius",
-  P12: "Incision Superius",
-  P13: "Upper Lip",
-  P14: "Lower Lip",
-  P15: "Soft Tissue Pogonion",
-  P16: "Posterior Nasal Spine",
-  P17: "Anterior Nasal Spine",
-  P18: "Upper Incisor Tip",
-  P19: "Lower Incisor Tip"
-};
-  const API_URL = process.env.REACT_APP_API_URL;
 
+  // ================================
+  // LANDMARK NAME MAP (CORE 19)
+  // ================================
+  const landmarkNames = {
+    P1: "Sella",
+    P2: "Nasion",
+    P3: "Orbitale",
+    P4: "Porion",
+    P5: "Subspinale (A Point)",
+    P6: "Supramentale (B Point)",
+    P7: "Pogonion",
+    P8: "Menton",
+    P9: "Gonion",
+    P10: "Articulare",
+    P11: "Incision Inferius",
+    P12: "Incision Superius",
+    P13: "Upper Lip",
+    P14: "Lower Lip",
+    P15: "Soft Tissue Pogonion",
+    P16: "Posterior Nasal Spine",
+    P17: "Anterior Nasal Spine",
+    P18: "Upper Incisor Tip",
+    P19: "Lower Incisor Tip"
+  };
+
+  const API_URL = process.env.REACT_APP_API_URL;
   const imageRef = useRef(null);
 
   const [landmarks, setLandmarks] = useState([]);
@@ -47,18 +48,26 @@ const landmarkNames = {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Initialize landmarks
+  // ================================
+  // INIT
+  // ================================
   useEffect(() => {
     if (!predictedLandmarks) return;
-    setLandmarks(predictedLandmarks);
-    setOriginalLandmarks(JSON.parse(JSON.stringify(predictedLandmarks)));
+
+    const initial = predictedLandmarks.map(lm => ({
+      ...lm,
+      isExtra: false
+    }));
+
+    setLandmarks(initial);
+    setOriginalLandmarks(JSON.parse(JSON.stringify(initial)));
   }, [predictedLandmarks]);
 
   if (!previewImage || !landmarks.length)
     return <p className="p-8">Invalid navigation state</p>;
 
   // ================================
-  // HANDLE DRAG
+  // DRAG HANDLING
   // ================================
   const handleMouseDown = (index) => {
     setSelectedIndex(index);
@@ -90,21 +99,51 @@ const landmarkNames = {
   };
 
   // ================================
-  // APPLY ALL COORDINATES (NEW)
+  // ADD EXTRA (MAX 5)
   // ================================
-  const applyAll = () => {
-    setSelectedIndex(-1); // Special flag to show all as active (blue)
+  const addPoint = () => {
+    const extraCount = landmarks.filter(l => l.isExtra).length;
+    if (extraCount >= 5) {
+      alert("Maximum 5 extra landmarks allowed.");
+      return;
+    }
+
+    const newPoint = {
+      name: `P${landmarks.length + 1}`,
+      x: 0.5,
+      y: 0.5,
+      isExtra: true
+    };
+
+    setLandmarks([...landmarks, newPoint]);
   };
 
   // ================================
-  // RESET FUNCTIONS
+  // DELETE EXTRA ONLY
+  // ================================
+  const deleteSelectedPoint = () => {
+    if (selectedIndex === null) return;
+
+    if (!landmarks[selectedIndex].isExtra) {
+      alert("Core 19 landmarks cannot be deleted.");
+      return;
+    }
+
+    const updated = landmarks.filter((_, i) => i !== selectedIndex);
+    setLandmarks(updated);
+    setSelectedIndex(null);
+  };
+
+  // ================================
+  // RESET
   // ================================
   const resetSelected = () => {
     if (selectedIndex === null || selectedIndex === -1) return;
-
-    const updated = [...landmarks];
-    updated[selectedIndex] = originalLandmarks[selectedIndex];
-    setLandmarks(updated);
+    if (!landmarks[selectedIndex].isExtra) {
+      const updated = [...landmarks];
+      updated[selectedIndex] = originalLandmarks[selectedIndex];
+      setLandmarks(updated);
+    }
   };
 
   const resetAll = () => {
@@ -113,11 +152,17 @@ const landmarkNames = {
   };
 
   // ================================
-  // FINALIZE ML
+  // APPLY ALL
+  // ================================
+  const applyAll = () => {
+    setSelectedIndex(-1);
+  };
+
+  // ================================
+  // FINALIZE
   // ================================
   const finalize = async () => {
     setLoading(true);
-
     try {
       const formData = new FormData();
       formData.append("file", imageFile);
@@ -135,11 +180,7 @@ const landmarkNames = {
         }
       );
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Finalize error:", errorText);
-        throw new Error("Finalization failed");
-      }
+      if (!res.ok) throw new Error("Finalization failed");
 
       const data = await res.json();
       navigate(`/doctor/landmark/${data.id}`);
@@ -151,19 +192,21 @@ const landmarkNames = {
     }
   };
 
-  // ================================
-  // CHECK IF MODIFIED
-  // ================================
   const isModified = (index) => {
+    if (!originalLandmarks[index]) return false;
     return (
-      landmarks[index].x !== originalLandmarks[index].x ||
-      landmarks[index].y !== originalLandmarks[index].y
+      landmarks[index].x !== originalLandmarks[index]?.x ||
+      landmarks[index].y !== originalLandmarks[index]?.y
     );
   };
 
+  // ================================
+  // RENDER
+  // ================================
   return (
     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* LEFT PANEL - IMAGE */}
+
+      {/* IMAGE PANEL */}
       <div
         className="md:col-span-2 relative border rounded shadow"
         onMouseMove={handleMouseMove}
@@ -177,13 +220,12 @@ const landmarkNames = {
           draggable={false}
         />
 
-        {/* LANDMARK OVERLAY */}
         {landmarks.map((p, i) => {
           const left = `${p.x * 100}%`;
           const top = `${p.y * 100}%`;
 
           const isActive =
-            selectedIndex === -1 || i === selectedIndex; // UPDATED
+            selectedIndex === -1 || i === selectedIndex;
 
           const modified = isModified(i);
 
@@ -191,14 +233,20 @@ const landmarkNames = {
             <div
               key={i}
               onMouseDown={() => handleMouseDown(i)}
-              className={`absolute w-3 h-3 rounded-full cursor-pointer 
-                ${isActive ? "bg-blue-500" : modified ? "bg-green-500" : "bg-orange-500"}`}
+              className={`absolute w-3 h-3 rounded-full cursor-pointer
+                ${p.isExtra
+                  ? "bg-purple-500"
+                  : isActive
+                  ? "bg-blue-500"
+                  : modified
+                  ? "bg-green-500"
+                  : "bg-orange-500"}`}
               style={{
                 left,
                 top,
                 transform: "translate(-50%, -50%)",
               }}
-              title={`${p.name} - ${landmarkNames[p.name] || ""}`}
+              title={`${p.name} - ${landmarkNames[p.name] || "Extra Landmark"}`}
             />
           );
         })}
@@ -212,9 +260,7 @@ const landmarkNames = {
 
         {selectedIndex !== null && selectedIndex !== -1 && (
           <div className="p-4 border rounded bg-gray-50">
-            <div className="font-medium">
-              Selected: {landmarks[selectedIndex].name}
-            </div>
+            <div><b>Selected:</b> {landmarks[selectedIndex].name}</div>
             <div>X: {landmarks[selectedIndex].x}</div>
             <div>Y: {landmarks[selectedIndex].y}</div>
 
@@ -227,6 +273,7 @@ const landmarkNames = {
           </div>
         )}
 
+        {/* LANDMARK LIST */}
         <div className="max-h-64 overflow-y-auto border rounded p-2">
           {landmarks.map((p, i) => (
             <div
@@ -235,15 +282,28 @@ const landmarkNames = {
               className={`p-2 cursor-pointer rounded text-sm
                 ${i === selectedIndex ? "bg-blue-100" : ""}`}
             >
-              {p.name} - {landmarkNames[p.name] || ""}
+              {p.name} - {landmarkNames[p.name] || "Extra Landmark"}
               {isModified(i) && (
-                <span className="text-green-600">(Modified)</span>
+                <span className="text-green-600"> (Modified)</span>
               )}
             </div>
           ))}
         </div>
 
-        {/* NEW BUTTON */}
+        <button
+          onClick={addPoint}
+          className="w-full px-4 py-2 bg-green-600 text-white rounded"
+        >
+          ➕ Add Extra Landmark
+        </button>
+
+        <button
+          onClick={deleteSelectedPoint}
+          className="w-full px-4 py-2 bg-red-600 text-white rounded"
+        >
+          ❌ Delete Selected (Extra Only)
+        </button>
+
         <button
           onClick={applyAll}
           className="w-full px-4 py-2 bg-blue-600 text-white rounded"
@@ -261,7 +321,7 @@ const landmarkNames = {
         <button
           onClick={finalize}
           disabled={loading}
-          className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          className="w-full px-4 py-2 bg-indigo-600 text-white rounded"
         >
           {loading ? "Processing..." : "Finalize & Generate Report"}
         </button>
