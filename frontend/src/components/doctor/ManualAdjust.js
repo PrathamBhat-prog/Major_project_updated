@@ -26,17 +26,17 @@ export default function ManualAdjust() {
     P6: "Supramentale (B Point)",
     P7: "Pogonion",
     P8: "Menton",
-    P9: "Gonion",
-    P10: "Articulare",
+    P9: "Gnathion",
+    P10: "gonion",
     P11: "Incision Inferius",
     P12: "Incision Superius",
     P13: "Upper Lip",
     P14: "Lower Lip",
-    P15: "Soft Tissue Pogonion",
-    P16: "Posterior Nasal Spine",
-    P17: "Anterior Nasal Spine",
-    P18: "Upper Incisor Tip",
-    P19: "Lower Incisor Tip"
+    P15: "subnasale",
+    P16: "Soft Tissue Pogonion",
+    P17: "Posterior Nasal Spine",
+    P18: "Anterior Nasal Spine",
+    P19: "Articulare",
   };
 
   const API_URL = process.env.REACT_APP_API_URL;
