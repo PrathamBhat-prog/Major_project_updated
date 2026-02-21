@@ -134,7 +134,7 @@ def compute_angles(landmarks):
 
     angles["ANB"] = angles["SNA"] - angles["SNB"]
     angles["FMA"] = angle(P["P4"] - P["P3"], P["P10"] - P["P8"])
-    angles["SN_GoGn"] = angle(SN, P["P8"] - P["P10"])
+    angles["SN_GoGn"] = angle(SN, P["P9"] - P["P10"])
     angles["U1_SN"] = angle(P["P12"] - P["P11"], SN)
     angles["L1_MP"] = angle(P["P11"] - P["P12"], P["P10"] - P["P8"])
     angles["Interincisal"] = angle(P["P12"] - P["P11"], P["P11"] - P["P12"])
@@ -284,7 +284,7 @@ def save_labeled_image(image_bytes, landmarks, path):
     draw_line("P1", "P2", "#22c55e")   # SN
     draw_line("P2", "P5", "#3b82f6")   # NA
     draw_line("P2", "P6", "#ef4444")   # NB
-    draw_line("P10", "P8", "#f59e0b")  # Mandibular plane
+    draw_line("P10", "P9", "#f59e0b")  # Mandibular plane
 
     # Airway references
     draw_line("P7", "P13", "cyan")
