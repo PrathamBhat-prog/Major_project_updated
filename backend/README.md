@@ -1,154 +1,255 @@
 # 🧠 AI-Based Cephalometric Landmark Detection & Automated Report Generation Backend
 
-## 📌 Project Overview
+---
 
-This project is an AI-powered Cephalometric Analysis Backend System built using FastAPI.
-It allows orthodontists to upload lateral cephalogram X-ray images and automatically:
+# 📌 Project Overview
 
-- Detect anatomical landmarks using Deep Learning
-- Calculate cephalometric measurements
-- Generate annotated images
-- Produce structured PDF reports
-- Store patient & doctor records securely
-- Maintain a master Excel dataset
+This project is an AI-powered Cephalometric Analysis Backend System developed using FastAPI and Deep Learning.
 
-The system is designed for clinical use, research purposes, and academic projects.
+The system allows orthodontists to:
+
+• Upload lateral cephalogram X-ray images  
+• Automatically detect anatomical landmarks  
+• Calculate cephalometric measurements  
+• Generate annotated landmark images  
+• Produce structured PDF reports  
+• Store patient & doctor records securely  
+• Maintain a centralized Master Excel dataset  
+
+This system is suitable for:
+
+- Clinical Usage
+- Academic Research
+- AI Model Development
+- Hospital Deployment
 
 ---
 
-## 🏗 Technology Stack
+# 🏗 Technology Stack
 
-- Backend Framework: FastAPI
-- Language: Python 3.9+
-- Database: PostgreSQL / SQLite (SQLAlchemy ORM)
-- Authentication: JWT-based authentication
-- Machine Learning: PyTorch / TensorFlow
-- Image Processing: OpenCV
-- Report Generation: Custom PDF Generator
-- Data Logging: Excel automation
+Backend Framework: FastAPI  
+Language: Python 3.9+  
+Database: PostgreSQL / SQLite  
+ORM: SQLAlchemy  
+Authentication: JWT-based authentication  
+Machine Learning: PyTorch / TensorFlow  
+Image Processing: OpenCV  
+Report Generation: Custom PDF Generator  
+Data Logging: Excel Automation  
+Deployment Ready: Uvicorn / Gunicorn  
 
 ---
 
-## 📂 Project Structure
+# 📂 Project Structure
 
 backend/
 │
 ├── app/
-│   ├── main.py
-│   ├── models.py
-│   ├── schemas.py
-│   ├── database.py
-│   ├── auth.py
-│   ├── utils.py
-│   ├── ml_inference.py
-│   ├── report_generator.py
-│   ├── master_excel.py
-│   ├── static/
-│   └── uploads/
+│   ├── main.py                  # FastAPI entry point
+│   ├── models.py                # Database models
+│   ├── schemas.py               # Pydantic schemas
+│   ├── database.py              # Database connection
+│   ├── auth.py                  # JWT authentication logic
+│   ├── utils.py                 # Utility functions
+│   ├── ml_inference.py          # ML prediction pipeline
+│   ├── report_generator.py      # PDF generation
+│   ├── master_excel.py          # Excel logging
+│   ├── static/                  # Generated reports & images
+│   └── uploads/                 # Uploaded X-ray images
 │
 ├── requirements.txt
+├── .env
 └── README.md
 
 ---
 
-## 🚀 Key Features
+# 🚀 Core Features
 
-### Role-Based Access
-- Admin
-- Doctor
+## 👨‍⚕️ Role-Based Access
+• Admin  
+• Doctor  
 
-### Automatic Landmark Detection
-- Deep Learning-based prediction
-- Landmark coordinate scaling
-- OpenCV-based visualization
+## 📍 Automatic Landmark Detection
+• Deep Learning model inference  
+• Landmark coordinate scaling  
+• OpenCV-based annotation  
+• JSON coordinate output  
 
-### Cephalometric Measurements
-- SNA
-- SNB
-- ANB
-- FMA
-- IMPA
-- Facial Axis
+## 📊 Cephalometric Measurements
+Automatically calculates:
 
-### Automated PDF Report
-- Patient information
-- Landmark coordinates
-- Measurement results
-- Diagnostic interpretation
-- Downloadable PDF
+• SNA  
+• SNB  
+• ANB  
+• FMA  
+• IMPA  
+• Facial Axis  
+• Y-Axis  
+• Mandibular Plane Angle  
+• Additional angular & linear measurements  
 
-### Master Excel Dataset
-- Automatically appends each patient analysis
-- Useful for research and retraining
+## 📄 Automated PDF Report
+Each report contains:
 
----
+• Patient details  
+• Landmark coordinate table  
+• Measurement table  
+• Diagnostic summary  
+• Annotated X-ray image  
+• Downloadable PDF file  
 
-## ⚙️ Installation Guide
-
-1. Clone Repository
-git clone <repository-url>
-cd backend
-
-2. Create Virtual Environment
-python -m venv venv
-
-Activate (Windows):
-venv\Scripts\activate
-
-3. Install Dependencies
-pip install -r requirements.txt
-
-4. Setup Environment Variables (.env file)
-DATABASE_URL=sqlite:///./ceph.db
-SECRET_KEY=your_secret_key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-
-5. Run Server
-uvicorn app.main:app --reload
-
-Server:
-http://127.0.0.1:8000
-
-Swagger:
-http://127.0.0.1:8000/docs
+## 📈 Master Excel Logging
+• Automatically appends patient analysis  
+• Central dataset for research  
+• Can be used for retraining models  
 
 ---
 
-## 🔄 System Workflow
+# 🔄 System Workflow
 
-1. Doctor logs in
-2. Create patient
-3. Upload cephalogram
-4. ML predicts landmarks
-5. Measurements calculated
-6. Annotated image generated
-7. PDF report generated
-8. Data stored
-9. Master Excel updated
-
----
-
-## 🔐 Authentication & Security
-
-- JWT-based authentication
-- Role-based access
-- Secure password hashing
+1. Doctor logs in using JWT authentication  
+2. Create new patient record  
+3. Upload lateral cephalogram image  
+4. ML model predicts landmarks  
+5. Coordinates scaled to original resolution  
+6. Cephalometric measurements computed  
+7. Annotated image generated  
+8. PDF report generated  
+9. Data stored in database  
+10. Master Excel updated  
 
 ---
 
-## 🎯 Target Users
+# 🧠 ML Inference Pipeline
 
-- Orthodontists
-- Dental Clinics
-- Hospitals
-- Research Institutions
+1. Image preprocessing (resize, normalize)  
+2. Landmark detection model inference  
+3. Coordinate transformation  
+4. OpenCV visualization  
+5. Measurement calculation  
+6. Report generation  
 
 ---
 
-## 👨‍💻 Author
+# 🔐 Authentication & Security
+
+• JWT Token-based authentication  
+• Password hashing  
+• Role-based route protection  
+• Token expiration  
+• Secure API endpoints  
+
+---
+
+# 📊 API Endpoints
+
+Authentication:
+POST   /login  
+
+Patients:
+POST   /patients  
+GET    /patients  
+GET    /patients/{id}  
+
+Prediction:
+POST   /predict  
+
+Reports:
+GET    /report/{id}  
+
+---
+
+# ⚙️ Installation Guide (Windows)
+
+## 1️⃣ Clone Repository
+
+git clone <repository-url>  
+cd backend  
+
+## 2️⃣ Create Virtual Environment
+
+python -m venv venv  
+
+Activate:
+
+venv\Scripts\activate  
+
+## 3️⃣ Install Dependencies
+
+pip install -r requirements.txt  
+
+## 4️⃣ Create .env File
+
+DATABASE_URL=sqlite:///./ceph.db  
+SECRET_KEY=your_secret_key  
+ALGORITHM=HS256  
+ACCESS_TOKEN_EXPIRE_MINUTES=60  
+
+## 5️⃣ Run Server
+
+uvicorn app.main:app --reload  
+
+Server URL:
+http://127.0.0.1:8000  
+
+Swagger Documentation:
+http://127.0.0.1:8000/docs  
+
+---
+
+# 🐳 Docker Deployment (Optional)
+
+docker build -t ceph-backend .  
+docker run -p 8000:8000 ceph-backend  
+
+---
+
+# ☁ Cloud Deployment Ready
+
+• AWS EC2  
+• GPU-enabled inference server  
+• Docker containerization  
+• Production-ready with Gunicorn  
+
+---
+
+# 🎯 Target Users
+
+• Orthodontists  
+• Dental Clinics  
+• Hospitals  
+• Research Institutions  
+• AI Research Labs  
+
+---
+
+# 🔮 Future Enhancements
+
+• Multi-model ensemble  
+• PINN-based anatomical correction  
+• AutoCeph comparison module  
+• Active learning retraining  
+• Cloud-based dashboard  
+• Multi-hospital integration  
+
+---
+
+# 📜 License
+
+This project is developed for academic and research purposes.  
+Commercial deployment requires proper licensing and validation.
+
+---
+
+# 👨‍💻 Author
 
 Gurunathagouda M Biradar  
 B.E. Artificial Intelligence & Machine Learning  
-AI-Based Cephalometric Analysis System
+AI-Based Cephalometric Analysis System  
+
+---
+
+# 📢 Acknowledgment
+
+GPU resources and research infrastructure support acknowledged where applicable.
 
