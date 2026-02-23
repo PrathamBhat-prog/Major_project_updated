@@ -1,182 +1,303 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function DoctorDashboard() {
+
   const { token } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL;
+
   const [patients, setPatients] = useState([]);
   const [predictions, setPredictions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL;
-  const navigate = useNavigate();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePatientId, setDeletePatientId] = useState(null);
+  const [verificationCode, setVerificationCode] = useState("");
 
+  // =====================================================
+  // LOAD DASHBOARD
+  // =====================================================
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch patients
-        const res = await fetch(`${API_URL}/patients`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.detail || "Failed to fetch patients");
-        }
-
-        const patientData = await res.json();
-        setPatients(patientData);
-
-        // Fetch predictions for each patient
-        const allPredictions = [];
-
-        for (let p of patientData) {
-          const predRes = await fetch(
-            `${API_URL}/patients/${p.id}/predictions`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (predRes.ok) {
-            const predData = await predRes.json();
-            predData.forEach((pred) =>
-              allPredictions.push({
-                ...pred,
-                patientName: p.name,
-              })
-            );
-          }
-        }
-
-        // Sort by newest first
-        allPredictions.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
-
-        setPredictions(allPredictions.slice(0, 5)); // Show latest 5
-      } catch (err) {
-        console.error("Error:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) fetchData();
+    if (token) {
+      fetchDashboardData();
+    }
   }, [token]);
 
+  // =====================================================
+  // FETCH DATA
+  // =====================================================
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const patientRes = await fetch(`${API_URL}/patients`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!patientRes.ok) throw new Error("Failed to fetch patients");
+
+      const patientData = await patientRes.json();
+      setPatients(Array.isArray(patientData) ? patientData : []);
+
+      const predRes = await fetch(`${API_URL}/doctor/predictions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!predRes.ok) {
+        setPredictions([]);
+        return;
+      }
+
+      const predData = await predRes.json();
+      setPredictions(Array.isArray(predData) ? predData : []);
+
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // =====================================================
+  // REQUEST DELETE (SEND OTP)
+  // =====================================================
+  const requestDeletePatient = async (patientId) => {
+    try {
+      const res = await fetch(
+        `${API_URL}/patients/${patientId}/send-delete-code`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to request delete");
+
+      setDeletePatientId(patientId);
+      setShowDeleteModal(true);
+
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // =====================================================
+  // CONFIRM DELETE
+  // =====================================================
+  const confirmDeletePatient = async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/patients/${deletePatientId}?code=${verificationCode}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.ok) throw new Error("Invalid verification code");
+
+      setShowDeleteModal(false);
+      setVerificationCode("");
+      setDeletePatientId(null);
+      fetchDashboardData();
+
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const filteredPredictions =
+    selectedPatient
+      ? predictions.filter((p) => p.patient_id === selectedPatient.id)
+      : [];
+
+  // =====================================================
+  // UI
+  // =====================================================
   return (
-    <main className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-6">
-        Doctor Dashboard
-      </h1>
+    <div className="flex h-screen bg-gradient-to-br from-slate-100 to-slate-200">
 
-      {loading && <div className="text-gray-500">Loading...</div>}
-      {error && <div className="text-red-500">Error: {error}</div>}
+      {/* ================= SIDEBAR ================= */}
+      <div className="w-80 bg-white/80 backdrop-blur-lg shadow-xl p-6 flex flex-col border-r">
 
-      {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-indigo-700">
+            Patients
+          </h2>
 
-          {/* PATIENTS */}
-          <div className="bg-white p-5 rounded shadow">
-            <h3 className="font-semibold mb-3 text-lg">
-              My Patients
-            </h3>
+          <button
+            onClick={() => navigate("/doctor/create-patient")}
+            className="bg-indigo-600 text-white w-10 h-10 rounded-xl shadow-md hover:bg-indigo-700 transition"
+          >
+            +
+          </button>
+        </div>
 
-            {patients.length === 0 ? (
-              <div className="text-gray-500">
-                No patients yet
+        <div className="flex-1 overflow-y-auto space-y-4">
+          {patients.map((patient) => (
+            <div
+              key={patient.id}
+              onClick={() => setSelectedPatient(patient)}
+              className={`p-4 rounded-2xl cursor-pointer border transition-all duration-200
+                ${
+                  selectedPatient?.id === patient.id
+                    ? "bg-indigo-50 border-indigo-400 shadow-md"
+                    : "bg-white hover:shadow-md hover:-translate-y-1"
+                }`}
+            >
+              <div className="font-semibold text-gray-800">
+                {patient.name}
               </div>
-            ) : (
-              <ul className="space-y-2">
-                {patients.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex justify-between border-b pb-1"
-                  >
-                    <span>{p.name}</span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(p.created_at).toLocaleDateString()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
 
-            <div className="mt-4">
-              <Link
-                className="text-indigo-600 hover:text-indigo-800"
-                to="/doctor/create-patient"
-              >
-                + Create New Patient
-              </Link>
+              <div className="text-xs text-gray-400 mt-1">
+                {new Date(patient.created_at).toLocaleDateString()}
+              </div>
+
+              <div className="flex gap-3 mt-3 text-xs">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/doctor/edit-patient/${patient.id}`);
+                  }}
+                  className="text-blue-600 hover:underline"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    requestDeletePatient(patient.id);
+                  }}
+                  className="text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* RECENT CEPHALOGRAMS */}
-          <div className="bg-white p-5 rounded shadow">
-            <h3 className="font-semibold mb-3 text-lg">
-              Recent Cephalograms
-            </h3>
 
-            {predictions.length === 0 ? (
-              <div className="text-gray-500">
-                No cephalograms uploaded yet.
+      {/* ================= MAIN CONTENT ================= */}
+      <div className="flex-1 p-10 overflow-y-auto">
+
+        {loading && <div className="text-gray-500">Loading...</div>}
+        {error && <div className="text-red-500">{error}</div>}
+
+        {selectedPatient && (
+          <div className="bg-white rounded-3xl shadow-xl p-10 border">
+
+            {/* Header */}
+            <div className="flex justify-between items-center mb-10">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">
+                  {selectedPatient.name}
+                </h1>
+
+                <div className="mt-3">
+                  <span className="bg-indigo-100 text-indigo-700 px-4 py-1 text-sm rounded-full font-medium">
+                    Patient ID: {selectedPatient.id}
+                  </span>
+                </div>
               </div>
-            ) : (
-              <ul className="space-y-3">
-                {predictions.map((pred) => (
-                  <li
-                    key={pred.id}
-                    className="border p-3 rounded hover:bg-gray-50 cursor-pointer"
-                    onClick={() =>
-                      navigate(`/doctor/landmark/${pred.id}`)
-                    }
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">
-                          {pred.patientName}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(pred.created_at).toLocaleString()}
-                        </div>
-                      </div>
 
-                      <span
-                        className={`px-2 py-1 text-xs rounded ${
-                          pred.mode_used === "ml"
-                            ? "bg-indigo-100 text-indigo-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {pred.mode_used?.toUpperCase()}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="mt-4">
-              <Link
-                className="text-indigo-600 hover:text-indigo-800"
-                to="/doctor/upload-cephalogram"
+              {/* UPDATED UPLOAD BUTTON */}
+              <button
+                onClick={() =>
+                  navigate("/doctor/upload-cephalogram")
+                }
+                className="bg-gradient-to-r from-indigo-600 to-indigo-700
+                           hover:from-indigo-700 hover:to-indigo-800
+                           text-white font-semibold
+                           px-8 py-3 rounded-2xl
+                           shadow-lg hover:shadow-xl
+                           transition-all duration-200
+                           hover:-translate-y-1"
               >
                 Upload Cephalogram
-              </Link>
+              </button>
+            </div>
+
+
+            {/* Predictions */}
+            <div className="space-y-5">
+
+              {filteredPredictions.length === 0 && (
+                <div className="text-gray-400 text-sm italic">
+                  No cephalograms uploaded yet.
+                </div>
+              )}
+
+              {filteredPredictions.map((pred) => (
+                <div
+                  key={pred.id}
+                  onClick={() =>
+                    navigate(`/doctor/landmark/${pred.id}`)
+                  }
+                  className="p-6 bg-gradient-to-r from-white to-slate-50
+                             rounded-2xl border border-slate-200
+                             hover:shadow-lg hover:-translate-y-1
+                             transition-all duration-200 cursor-pointer"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold text-lg text-gray-700">
+                        Cephalogram #{pred.id}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {new Date(pred.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <div className="text-indigo-600 font-medium">
+                      View →
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        )}
+      </div>
 
+
+      {/* ================= DELETE MODAL ================= */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
+
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Enter Verification Code
+            </h3>
+
+            <input
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              className="border border-gray-300 focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none p-3 w-full mb-4 rounded-xl"
+              placeholder="6-digit code"
+            />
+
+            <button
+              onClick={confirmDeletePatient}
+              className="w-full bg-red-600 hover:bg-red-700
+                         text-white py-3 rounded-xl shadow-md transition"
+            >
+              Confirm Delete
+            </button>
+          </div>
         </div>
       )}
-    </main>
+
+    </div>
   );
 }

@@ -55,22 +55,30 @@ _scaler = None
 
 
 # ==================================================
-# LOAD MODELS (ONCE)
+# LOAD MODELS (SAFE LOAD)
 # ==================================================
 def load_models():
     global _seg_model, _reg_model
-    if _seg_model is None:
-        _seg_model = tf.keras.models.load_model(SEG_MODEL_PATH, compile=False)
-    if _reg_model is None:
-        _reg_model = tf.keras.models.load_model(REG_MODEL_PATH, compile=False)
+    try:
+        if _seg_model is None:
+            _seg_model = tf.keras.models.load_model(SEG_MODEL_PATH, compile=False)
+        if _reg_model is None:
+            _reg_model = tf.keras.models.load_model(REG_MODEL_PATH, compile=False)
+    except Exception as e:
+        print("Model load error:", e)
+        raise e
     return _seg_model, _reg_model
 
 
 def load_gb():
     global _gb, _scaler
-    if _gb is None:
-        _gb = joblib.load(GB_MODEL_PATH)
-        _scaler = joblib.load(SCALER_PATH)
+    try:
+        if _gb is None:
+            _gb = joblib.load(GB_MODEL_PATH)
+            _scaler = joblib.load(SCALER_PATH)
+    except Exception as e:
+        print("GB model load error:", e)
+        raise e
     return _gb, _scaler
 
 
@@ -108,16 +116,13 @@ def predict_landmarks(image_bytes):
 
 
 # ==================================================
-# ANGLE COMPUTATION
+# ANGLE COMPUTATION (SAFE)
 # ==================================================
 def angle(v1, v2):
+    denom = (np.linalg.norm(v1) * np.linalg.norm(v2)) + 1e-9
     return np.degrees(
         np.arccos(
-            np.clip(
-                np.dot(v1, v2) /
-                (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-9),
-                -1, 1
-            )
+            np.clip(np.dot(v1, v2) / denom, -1, 1)
         )
     )
 
@@ -125,25 +130,30 @@ def angle(v1, v2):
 def compute_angles(landmarks):
     P = {p["name"]: np.array([p["x"], p["y"]]) for p in landmarks}
 
-    SN = P["P1"] - P["P2"]
+    try:
+        SN = P["P1"] - P["P2"]
 
-    angles = {
-        "SNA": angle(P["P5"] - P["P2"], SN),
-        "SNB": angle(P["P6"] - P["P2"], SN),
-    }
+        angles = {
+            "SNA": angle(P["P5"] - P["P2"], SN),
+            "SNB": angle(P["P6"] - P["P2"], SN),
+        }
 
-    angles["ANB"] = angles["SNA"] - angles["SNB"]
-    angles["FMA"] = angle(P["P4"] - P["P3"], P["P10"] - P["P8"])
-    angles["SN_GoGn"] = angle(SN, P["P9"] - P["P10"])
-    angles["U1_SN"] = angle(P["P12"] - P["P11"], SN)
-    angles["L1_MP"] = angle(P["P11"] - P["P12"], P["P10"] - P["P8"])
-    angles["Interincisal"] = angle(P["P12"] - P["P11"], P["P11"] - P["P12"])
+        angles["ANB"] = angles["SNA"] - angles["SNB"]
+        angles["FMA"] = angle(P["P4"] - P["P3"], P["P10"] - P["P8"])
+        angles["SN_GoGn"] = angle(SN, P["P9"] - P["P10"])
+        angles["U1_SN"] = angle(P["P12"] - P["P11"], SN)
+        angles["L1_MP"] = angle(P["P11"] - P["P12"], P["P10"] - P["P8"])
+        angles["Interincisal"] = angle(P["P12"] - P["P11"], P["P11"] - P["P12"])
 
-    return angles
+        return angles
+
+    except Exception as e:
+        print("Angle computation error:", e)
+        return {}
 
 
 # ==================================================
-# AIRWAY
+# AIRWAY (SAFE)
 # ==================================================
 def compute_airway(landmarks):
     P = {p["name"]: np.array([p["x"], p["y"]]) for p in landmarks}
@@ -163,7 +173,6 @@ def compute_airway(landmarks):
             "lower_airway_width": None,
             "airway_area": None
         }
-
 
 # ==================================================
 # CLINICAL INTERPRETATION

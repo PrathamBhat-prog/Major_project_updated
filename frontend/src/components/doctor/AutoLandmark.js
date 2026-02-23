@@ -42,102 +42,144 @@ export default function AutoLandmark() {
       ? "bg-indigo-100 text-indigo-700"
       : "bg-green-100 text-green-700";
 
-  return (
-    <div className="p-6 space-y-8">
+ return (
+  <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-12 px-6">
+
+    <div className="max-w-6xl mx-auto space-y-12">
 
       {/* HEADER */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">
+        <h2 className="text-3xl font-bold text-gray-800">
           Predicted Landmarks
         </h2>
 
         {ceph.mode_used && (
-          <span className={`px-3 py-1 rounded text-sm font-medium ${modeColor}`}>
-            Mode: {ceph.mode_used.toUpperCase()}
+          <span
+            className={`px-5 py-2 rounded-full text-sm font-semibold shadow-sm ${
+              ceph.mode_used === "ml"
+                ? "bg-indigo-100 text-indigo-700"
+                : "bg-emerald-100 text-emerald-700"
+            }`}
+          >
+            {ceph.mode_used === "ml"
+              ? "ML Mode"
+              : "Clinical Mode"}
           </span>
         )}
       </div>
 
-      {/* IMAGE WITH OVERLAY */}
-      <div className="relative inline-block border rounded shadow">
-        <img
-          src={imageSrc}
-          alt="Cephalogram"
-          className="max-w-4xl block"
-        />
 
-        {/* LANDMARK OVERLAY */}
-        {ceph.landmarks?.map((p, i) => (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${p.x * 100}%`,
-              top: `${p.y * 100}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            {/* Dot */}
-            <div className="w-3 h-3 bg-red-500 rounded-full border border-white shadow" />
+      {/* IMAGE CARD */}
+      <div className="bg-white rounded-3xl shadow-xl p-6 border flex justify-center">
 
-            {/* Label */}
-            <div className="text-xs text-yellow-400 font-semibold mt-1 -ml-2">
-              {p.name}
+        <div className="relative inline-block">
+
+          <img
+            src={imageSrc}
+            alt="Cephalogram"
+            className="max-w-4xl rounded-2xl"
+          />
+
+          {/* LANDMARK OVERLAY */}
+          {ceph.landmarks?.map((p, i) => (
+            <div
+              key={i}
+              className="absolute group"
+              style={{
+                left: `${p.x * 100}%`,
+                top: `${p.y * 100}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              {/* Animated Dot */}
+              <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg
+                              group-hover:scale-125 transition-transform duration-200" />
+
+              {/* Label */}
+              <div className="text-xs bg-black/70 text-white px-2 py-1 rounded-md mt-2
+                              opacity-0 group-hover:opacity-100 transition duration-200
+                              whitespace-nowrap">
+                {p.name}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+
+        </div>
       </div>
 
+
       {/* LANDMARK COUNT */}
-      <div className="text-gray-600">
+      <div className="bg-white rounded-2xl shadow-md p-6 border text-gray-700">
         Total Landmarks:{" "}
-        <span className="font-semibold">
+        <span className="font-bold text-indigo-600 text-lg">
           {ceph.landmarks?.length || 0}
         </span>
       </div>
 
+
       {/* TABLE */}
-      <div>
-        <h3 className="text-lg font-semibold mb-2">
+      <div className="bg-white rounded-3xl shadow-lg border p-8">
+
+        <h3 className="text-2xl font-semibold text-gray-800 mb-6">
           Landmark Coordinates
         </h3>
 
         <div className="overflow-x-auto">
-          <table className="border text-sm w-full max-w-xl">
-            <thead className="bg-gray-100">
+          <table className="min-w-full text-sm rounded-lg overflow-hidden">
+
+            <thead className="bg-indigo-50 text-indigo-700">
               <tr>
-                <th className="border px-2 py-1">Name</th>
-                <th className="border px-2 py-1">X</th>
-                <th className="border px-2 py-1">Y</th>
+                <th className="px-4 py-3 text-left font-semibold">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left font-semibold">
+                  X
+                </th>
+                <th className="px-4 py-3 text-left font-semibold">
+                  Y
+                </th>
               </tr>
             </thead>
-            <tbody>
+
+            <tbody className="divide-y">
               {ceph.landmarks?.map((p) => (
-                <tr key={p.name}>
-                  <td className="border px-2 py-1 font-medium">
+                <tr
+                  key={p.name}
+                  className="hover:bg-slate-50 transition"
+                >
+                  <td className="px-4 py-3 font-medium text-gray-700">
                     {p.name}
                   </td>
-                  <td className="border px-2 py-1">
+                  <td className="px-4 py-3 text-gray-600">
                     {Number(p.x).toFixed(4)}
                   </td>
-                  <td className="border px-2 py-1">
+                  <td className="px-4 py-3 text-gray-600">
                     {Number(p.y).toFixed(4)}
                   </td>
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
       </div>
 
-      {/* NAVIGATION */}
-      <Link
-        to={`/doctor/classification/${id}`}
-        className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded shadow"
-      >
-        View Full Cephalometric Analysis →
-      </Link>
+
+      {/* NAVIGATION BUTTON */}
+      <div className="flex justify-end">
+        <Link
+          to={`/doctor/classification/${id}`}
+          className="bg-gradient-to-r from-indigo-600 to-indigo-700
+                     hover:from-indigo-700 hover:to-indigo-800
+                     text-white font-semibold px-8 py-3
+                     rounded-2xl shadow-lg hover:shadow-xl
+                     transition-all duration-200 hover:-translate-y-1"
+        >
+          View Full Cephalometric Analysis →
+        </Link>
+      </div>
 
     </div>
-  );
+  </div>
+);
 }

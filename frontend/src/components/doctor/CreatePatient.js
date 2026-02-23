@@ -20,9 +20,6 @@ export default function CreatePatient() {
 
   const API_URL = process.env.REACT_APP_API_URL;
 
-  // ============================
-  // CALCULATE AGE FROM DOB
-  // ============================
   const calculateAge = (dob) => {
     if (!dob) return 0;
     const birthDate = new Date(dob);
@@ -31,9 +28,6 @@ export default function CreatePatient() {
     return Math.abs(ageDate.getUTCFullYear() - 1970);
   };
 
-  // ============================
-  // HANDLE SUBMIT
-  // ============================
   const submit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -47,14 +41,9 @@ export default function CreatePatient() {
     try {
       const payload = {
         name: form.name.trim(),
-
-        // 🔥 ADDED AGE (Backend expects this)
         age: calculateAge(form.dob),
-
-        // Keeping existing fields
         dob: form.dob || "",
         gender: form.gender,
-
         notes: `
 Gender: ${form.gender}
 Email: ${form.email || "N/A"}
@@ -78,8 +67,8 @@ Address: ${form.address || "N/A"}
       }
 
       await res.json();
-
       navigate("/doctor/dashboard");
+
     } catch (err) {
       console.error("Error creating patient:", err);
       setError(err.message);
@@ -89,129 +78,161 @@ Address: ${form.address || "N/A"}
   };
 
   return (
-    <main className="max-w-2xl mx-auto p-6">
-      <h2 className="text-xl font-semibold mb-6">
-        Create New Patient
-      </h2>
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-8">
 
-      <form
-        onSubmit={submit}
-        className="bg-white p-6 rounded shadow space-y-4"
-      >
-        {/* NAME */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Full Name *
-          </label>
-          <input
-            required
-            value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-            placeholder="Enter full name"
-          />
+      <div className="w-full max-w-3xl bg-white/90 backdrop-blur-lg shadow-2xl rounded-3xl p-10 border">
+
+        {/* Header */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-indigo-700">
+            Create New Patient
+          </h2>
+          <p className="text-gray-500 mt-2 text-sm">
+            Enter patient details below
+          </p>
         </div>
 
-        {/* DOB */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Date of Birth
-          </label>
-          <input
-            type="date"
-            value={form.dob}
-            onChange={(e) =>
-              setForm({ ...form, dob: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-          />
-        </div>
+        <form onSubmit={submit} className="space-y-6">
 
-        {/* GENDER */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Gender
-          </label>
-          <select
-            value={form.gender}
-            onChange={(e) =>
-              setForm({ ...form, gender: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-          >
-            <option value="M">Male</option>
-            <option value="F">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        {/* EMAIL */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Email
-          </label>
-          <input
-            value={form.email}
-            onChange={(e) =>
-              setForm({ ...form, email: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-            placeholder="example@email.com"
-          />
-        </div>
-
-        {/* PHONE */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Phone
-          </label>
-          <input
-            value={form.phone}
-            onChange={(e) =>
-              setForm({ ...form, phone: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-            placeholder="Phone number"
-          />
-        </div>
-
-        {/* ADDRESS */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Address
-          </label>
-          <input
-            value={form.address}
-            onChange={(e) =>
-              setForm({ ...form, address: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-            placeholder="Address"
-          />
-        </div>
-
-        {error && (
-          <div className="text-sm text-red-500">
-            {error}
+          {/* NAME */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Full Name *
+            </label>
+            <input
+              required
+              value={form.name}
+              onChange={(e) =>
+                setForm({ ...form, name: e.target.value })
+              }
+              className="w-full border border-gray-300 p-3 rounded-xl
+                         focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none transition"
+              placeholder="Enter full name"
+            />
           </div>
-        )}
 
-        {/* SUBMIT */}
-        <div className="flex justify-end">
-          <button
-            disabled={loading}
-            className={`px-5 py-2 rounded text-white ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-500"
-            }`}
-          >
-            {loading ? "Creating..." : "Create Patient"}
-          </button>
-        </div>
-      </form>
-    </main>
+          {/* DOB */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Date of Birth
+            </label>
+            <input
+              type="date"
+              value={form.dob}
+              onChange={(e) =>
+                setForm({ ...form, dob: e.target.value })
+              }
+              className="w-full border border-gray-300 p-3 rounded-xl
+                         focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none transition"
+            />
+          </div>
+
+          {/* GENDER */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Gender
+            </label>
+            <select
+              value={form.gender}
+              onChange={(e) =>
+                setForm({ ...form, gender: e.target.value })
+              }
+              className="w-full border border-gray-300 p-3 rounded-xl
+                         focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none transition"
+            >
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* EMAIL */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Email
+            </label>
+            <input
+              value={form.email}
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
+              className="w-full border border-gray-300 p-3 rounded-xl
+                         focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none transition"
+              placeholder="example@email.com"
+            />
+          </div>
+
+          {/* PHONE */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Phone
+            </label>
+            <input
+              value={form.phone}
+              onChange={(e) =>
+                setForm({ ...form, phone: e.target.value })
+              }
+              className="w-full border border-gray-300 p-3 rounded-xl
+                         focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none transition"
+              placeholder="Phone number"
+            />
+          </div>
+
+          {/* ADDRESS */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Address
+            </label>
+            <input
+              value={form.address}
+              onChange={(e) =>
+                setForm({ ...form, address: e.target.value })
+              }
+              className="w-full border border-gray-300 p-3 rounded-xl
+                         focus:ring-2 focus:ring-indigo-400
+                         focus:outline-none transition"
+              placeholder="Address"
+            />
+          </div>
+
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* ACTION BUTTONS */}
+          <div className="flex justify-end gap-4 pt-4">
+
+            <button
+              type="button"
+              onClick={() => navigate("/doctor/dashboard")}
+              className="px-6 py-3 rounded-xl border border-gray-300
+                         text-gray-600 hover:bg-gray-100 transition"
+            >
+              Cancel
+            </button>
+
+            <button
+              disabled={loading}
+              className={`px-8 py-3 rounded-xl text-white font-semibold shadow-md transition-all duration-200
+                ${
+                  loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 hover:-translate-y-1"
+                }`}
+            >
+              {loading ? "Creating..." : "Create Patient"}
+            </button>
+
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

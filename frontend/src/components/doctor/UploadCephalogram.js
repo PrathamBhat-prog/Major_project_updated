@@ -138,82 +138,158 @@ export default function UploadCephalogram() {
     }
   };
 
-  return (
-    <main className="max-w-2xl mx-auto p-6">
-      <h2 className="text-xl font-semibold mb-4">
-        Upload Cephalogram
-      </h2>
+ return (
+  <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-slate-100 py-14 px-6">
 
-      <div className="bg-white p-4 rounded shadow space-y-4">
+    <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-3xl p-12 border">
 
-        {/* Patient Select */}
+      {/* HEADER */}
+      <div className="text-center mb-12">
+        <h2 className="text-4xl font-bold text-indigo-700">
+          Upload Cephalogram
+        </h2>
+        <p className="text-gray-500 mt-3">
+          Select patient and choose classification mode
+        </p>
+      </div>
+
+      {/* PATIENT SELECT */}
+      <div className="mb-10">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">
+          Select Patient
+        </label>
+
         <select
           value={patientId}
           onChange={(e) => setPatientId(e.target.value)}
-          className="w-full border p-2 rounded"
+          className="w-full px-4 py-3 rounded-xl border border-gray-300
+                     focus:ring-2 focus:ring-indigo-500 focus:outline-none
+                     shadow-sm"
         >
-          <option value="">Select patient</option>
+          <option value="">Choose a patient...</option>
           {patients.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name} (#{p.id})
             </option>
           ))}
         </select>
+      </div>
 
-        {/* File Upload */}
+      {/* FILE UPLOAD (CLEAN STYLE) */}
+      <div className="mb-10">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">
+          Upload Image
+        </label>
+
         <input
           type="file"
           accept="image/*"
           onChange={onFile}
+          className="w-full px-4 py-3 border rounded-xl
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-lg file:border-0
+                     file:bg-indigo-600 file:text-white
+                     hover:file:bg-indigo-700
+                     cursor-pointer"
         />
-
-        {/* Preview */}
-        {fileData && (
-          <div className="p-2 border rounded">
-            <img
-              src={fileData.imageData}
-              className="max-h-48 mx-auto"
-              alt="preview"
-            />
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="text-red-500">
-            {error}
-          </div>
-        )}
-
-        {/* Buttons */}
-        <div className="flex gap-3">
-          <button
-            disabled={loading}
-            onClick={() => submit("clinical")}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            {loading ? "Processing..." : "Clinical Classify"}
-          </button>
-
-          <button
-            disabled={loading}
-            onClick={() => submit("ml")}
-            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            {loading ? "Processing..." : "ML Classify"}
-          </button>
-        </div>
       </div>
 
-      {/* Optional Preview for Clinical */}
-      {latestPredictionId && (
-        <div className="mt-10">
-          <h3 className="text-lg font-semibold">
-            Prediction Output
-          </h3>
-          <CephalogramViewer id={latestPredictionId} />
+      {/* IMAGE PREVIEW */}
+      {fileData && (
+        <div className="mb-12 text-center">
+          <div className="bg-slate-50 p-6 rounded-2xl shadow-inner inline-block">
+            <img
+              src={fileData.imageData}
+              alt="Preview"
+              className="max-h-72 rounded-xl shadow-md"
+            />
+          </div>
         </div>
       )}
-    </main>
-  );
+
+      {/* ERROR */}
+      {error && (
+        <div className="mb-8 text-center text-red-600 font-medium">
+          {error}
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-10">
+
+  {/* CLINICAL CARD */}
+<div
+  onClick={() => !loading && submit("clinical")}
+  className={`relative cursor-pointer rounded-3xl p-10
+              bg-blue-800 text-white shadow-xl
+              transition-all duration-300
+              hover:shadow-2xl hover:-translate-y-2`}
+>
+  {loading && (
+    <div className="absolute inset-0 bg-black/40 rounded-3xl flex items-center justify-center">
+      <span className="text-white font-semibold text-lg">
+        Processing...
+      </span>
+    </div>
+  )}
+
+  <h3 className="text-3xl font-bold mb-4">
+    Clinical Classify
+  </h3>
+
+  <p className="text-base text-white/90">
+    Full automatic clinical classification and cephalometric angle analysis.
+  </p>
+
+  <div className="mt-8 text-lg font-semibold">
+    Start Clinical Analysis →
+  </div>
+</div>
+
+
+  {/* ML CARD */}
+  <div
+    onClick={() => !loading && submit("ml")}
+    className="relative cursor-pointer rounded-3xl p-10
+               bg-gradient-to-br from-indigo-600 to-purple-700
+               text-white shadow-xl
+               transition-all duration-300
+               hover:shadow-2xl hover:-translate-y-2"
+  >
+    {loading && (
+      <div className="absolute inset-0 bg-black/40 rounded-3xl flex items-center justify-center">
+        <span className="text-white font-semibold text-lg">
+          Processing...
+        </span>
+      </div>
+    )}
+
+    <h3 className="text-3xl font-bold mb-4 drop-shadow-md">
+      ML Classify
+    </h3>
+
+    <p className="text-white/95 text-base leading-relaxed">
+      AI-assisted landmark detection with manual refinement option.
+    </p>
+
+    <div className="mt-8 text-lg font-semibold">
+      Start ML Prediction →
+    </div>
+  </div>
+
+</div>
+
+    </div>
+
+    {/* OPTIONAL OUTPUT */}
+    {latestPredictionId && (
+      <div className="max-w-5xl mx-auto mt-16 bg-white rounded-3xl shadow-xl p-8 border">
+        <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+          Prediction Output
+        </h3>
+        <CephalogramViewer id={latestPredictionId} />
+      </div>
+    )}
+
+  </div>
+);
 }

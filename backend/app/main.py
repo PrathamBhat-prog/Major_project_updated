@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, Form
+from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from typing import List
 import io
 import time
 import os
@@ -74,14 +73,14 @@ app.include_router(patients_router)
 def get_cephalogram(
     pred_id: int,
     db: Session = Depends(get_db),
-    token: dict = Depends(utils.get_current_user)
+    user: models.User = Depends(utils.get_current_user)
 ):
     pred = db.query(models.Prediction).filter(
         models.Prediction.id == pred_id
     ).first()
 
     if not pred:
-        raise HTTPException(status_code=404, detail="Cephalogram not found")
+        raise HTTPException(404, "Cephalogram not found")
 
     return {
         "id": pred.id,
@@ -102,14 +101,14 @@ def get_cephalogram(
     }
 
 # ==================================================
-# CLINICAL FULL PIPELINE
+# CLINICAL PIPELINE
 # ==================================================
 @app.post("/predict/{patient_id}", response_model=schemas.PredictionOut)
 async def predict_clinical(
     patient_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    token: dict = Depends(utils.get_current_user)
+    user: models.User = Depends(utils.get_current_user)
 ):
     start = time.time()
     image_bytes = await file.read()
@@ -120,21 +119,22 @@ async def predict_clinical(
     )
 
     return await finalize_prediction(
-        result=result,
-        file=file,
-        patient_id=patient_id,
-        db=db,
-        start=start
+        result,
+        file,
+        patient_id,
+        db,
+        start,
+        user.id
     )
 
 # ==================================================
-# ML STAGE 1 – LANDMARK PREVIEW
+# ML LANDMARK PREVIEW
 # ==================================================
 @app.post("/ml-predict/{patient_id}")
-async def ml_predict_landmarks(
+async def ml_predict(
     patient_id: int,
     file: UploadFile = File(...),
-    token: dict = Depends(utils.get_current_user)
+    user: models.User = Depends(utils.get_current_user)
 ):
     image_bytes = await file.read()
 
@@ -144,25 +144,23 @@ async def ml_predict_landmarks(
     )
 
 # ==================================================
-# ML STAGE 2 – FINALIZE AFTER MANUAL ADJUST
+# ML FINALIZE
 # ==================================================
 @app.post("/ml-finalize/{patient_id}", response_model=schemas.PredictionOut)
 async def ml_finalize(
     patient_id: int,
-    landmarks: str = Form(...),   # 🔥 FIXED HERE
+    landmarks: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    token: dict = Depends(utils.get_current_user)
+    user: models.User = Depends(utils.get_current_user)
 ):
     start = time.time()
-
     image_bytes = await file.read()
 
-    # Parse landmarks JSON string
     try:
         parsed_landmarks = json.loads(landmarks)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid landmarks format")
+    except:
+        raise HTTPException(400, "Invalid landmarks")
 
     result = ml_inference.process_ml_finalize(
         image_bytes=image_bytes,
@@ -171,117 +169,142 @@ async def ml_finalize(
     )
 
     return await finalize_prediction(
-        result=result,
-        file=file,
-        patient_id=patient_id,
-        db=db,
-        start=start
+        result,
+        file,
+        patient_id,
+        db,
+        start,
+        user.id
     )
 
 # ==================================================
-# COMMON FINALIZATION LOGIC
+# FINALIZE FUNCTION (SAFE VERSION)
 # ==================================================
-async def finalize_prediction(result, file, patient_id, db, start):
+async def finalize_prediction(
+    result,
+    file,
+    patient_id,
+    db,
+    start,
+    doctor_id
+):
+    if not result:
+        raise HTTPException(500, "ML result is None")
 
-    # ===============================
-    # SAVE IMAGE
-    # ===============================
-    with open(result["output_image"], "rb") as f:
-        image_url = upload_bytes(
-            f.read(),
-            folder="images",
-            ext="jpg",
-            content_type="image/jpeg",
+    try:
+        # Save image
+        with open(result["output_image"], "rb") as f:
+            image_url = upload_bytes(
+                f.read(),
+                folder="images",
+                ext="jpg",
+                content_type="image/jpeg",
+                original_name=file.filename
+            )
+
+        # Save excel
+        with open(result["excel_file"], "rb") as f:
+            excel_url = upload_bytes(
+                f.read(),
+                folder="excels",
+                ext="xlsx",
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                original_name=file.filename
+            )
+
+        # Generate PDF
+        pdf_buffer = io.BytesIO()
+
+        generate_ceph_report(
+            patient_id,
+            result["angles"],
+            result["skeletal_class"],
+            result["output_image"],
+            pdf_buffer,
+            result.get("maxilla_status"),
+            result.get("mandible_status"),
+            result.get("divergence_status"),
+            result.get("airway")
+        )
+
+        pdf_buffer.seek(0)
+
+        pdf_url = upload_bytes(
+            pdf_buffer.getvalue(),
+            folder="reports",
+            ext="pdf",
+            content_type="application/pdf",
             original_name=file.filename
         )
 
-    # ===============================
-    # SAVE EXCEL
-    # ===============================
-    with open(result["excel_file"], "rb") as f:
-        excel_url = upload_bytes(
-            f.read(),
-            folder="excels",
-            ext="xlsx",
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            original_name=file.filename
+        append_to_master_excel(file.filename, result)
+
+        # Build prediction data
+        prediction_data = dict(
+            patient_id=patient_id,
+            mode_used=result["mode_used"],
+            model_name=f"ceph_model_{result['mode_used']}",
+            result=result["landmarks"],
+            angles=result["angles"],
+            skeletal_class=result["skeletal_class"],
+            maxilla_status=result.get("maxilla_status"),
+            mandible_status=result.get("mandible_status"),
+            divergence_status=result.get("divergence_status"),
+            airway=result["airway"],
+            image_path=image_url,
+            excel_path=excel_url,
+            pdf_path=pdf_url
         )
 
-    # ===============================
-    # GENERATE PDF
-    # ===============================
-    pdf_buffer = io.BytesIO()
+        # Add doctor_id only if exists in model
+        if hasattr(models.Prediction, "doctor_id"):
+            prediction_data["doctor_id"] = doctor_id
 
-    generate_ceph_report(
-        patient_id=patient_id,
-        angles=result["angles"],
-        skeletal_class=result["skeletal_class"],
-        image_path=result["output_image"],
-        save_path=pdf_buffer,
-        maxilla_status=result.get("maxilla_status"),
-        mandible_status=result.get("mandible_status"),
-        divergence_status=result.get("divergence_status"),
-        airway=result.get("airway")
+        pred = models.Prediction(**prediction_data)
+
+        db.add(pred)
+        db.commit()
+        db.refresh(pred)
+
+        return {
+            "id": pred.id,
+            "patient_id": patient_id,
+            "model_name": pred.model_name,
+            "mode_used": pred.mode_used,
+            "created_at": pred.created_at,
+            "status": "completed",
+            "processing_time": round(time.time() - start, 3),
+            "num_landmarks": len(result["landmarks"]),
+            "landmarks": result["landmarks"],
+            "angles": result["angles"],
+            "skeletal_class": result["skeletal_class"],
+            "maxilla_status": result.get("maxilla_status"),
+            "mandible_status": result.get("mandible_status"),
+            "divergence_status": result.get("divergence_status"),
+            "airway": result["airway"],
+            "output_image": image_url,
+            "excel_file": excel_url,
+            "pdf_report": pdf_url
+        }
+
+    except Exception as e:
+        print("Finalize prediction error:", str(e))
+        raise HTTPException(500, "Prediction processing failed")
+
+# ==================================================
+# DOCTOR DASHBOARD
+# ==================================================
+@app.get("/doctor/predictions")
+def doctor_predictions(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    predictions = (
+        db.query(models.Prediction)
+        .join(models.Patient)
+        .filter(models.Patient.owner_id == user.id)
+        .order_by(models.Prediction.created_at.desc())
+        .all()
     )
 
-    pdf_buffer.seek(0)
-
-    pdf_url = upload_bytes(
-        pdf_buffer.getvalue(),
-        folder="reports",
-        ext="pdf",
-        content_type="application/pdf",
-        original_name=file.filename
-    )
-
-    # ===============================
-    # UPDATE MASTER EXCEL
-    # ===============================
-    append_to_master_excel(
-        filename=file.filename,
-        result=result
-    )
-
-    # ===============================
-    # SAVE TO DATABASE
-    # ===============================
-    pred = models.Prediction(
-        patient_id=patient_id,
-        mode_used=result["mode_used"],
-        model_name=f"ceph_model_{result['mode_used']}",
-        result=result["landmarks"],
-        angles=result["angles"],
-        skeletal_class=result["skeletal_class"],
-        maxilla_status=result.get("maxilla_status"),
-        mandible_status=result.get("mandible_status"),
-        divergence_status=result.get("divergence_status"),
-        airway=result["airway"],
-        image_path=image_url,
-        excel_path=excel_url,
-        pdf_path=pdf_url
-    )
-
-    db.add(pred)
-    db.commit()
-    db.refresh(pred)
-
-    return {
-        "id": pred.id,
-        "patient_id": patient_id,
-        "model_name": pred.model_name,
-        "mode_used": pred.mode_used,
-        "created_at": pred.created_at,
-        "status": "completed",
-        "processing_time": round(time.time() - start, 3),
-        "num_landmarks": len(result["landmarks"]),
-        "landmarks": result["landmarks"],
-        "angles": result["angles"],
-        "skeletal_class": result["skeletal_class"],
-        "maxilla_status": result.get("maxilla_status"),
-        "mandible_status": result.get("mandible_status"),
-        "divergence_status": result.get("divergence_status"),
-        "airway": result["airway"],
-        "output_image": image_url,
-        "excel_file": excel_url,
-        "pdf_report": pdf_url
-    }
+    return predictions

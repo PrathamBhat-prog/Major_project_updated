@@ -48,20 +48,22 @@ export default function ClassificationView() {
   const isML = ceph.mode_used === "ml";
 
   return (
-    <div className="p-8 space-y-10 max-w-6xl mx-auto">
+  <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-12 px-6">
+
+    <div className="max-w-6xl mx-auto space-y-12">
 
       {/* HEADER */}
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">
+        <h2 className="text-4xl font-bold text-gray-800 tracking-tight">
           Cephalometric Analysis Report
         </h2>
 
         {ceph.mode_used && (
           <span
-            className={`px-4 py-1 rounded-full text-sm font-medium ${
+            className={`px-5 py-2 rounded-full text-sm font-semibold shadow-sm ${
               isML
                 ? "bg-indigo-100 text-indigo-700"
-                : "bg-green-100 text-green-700"
+                : "bg-emerald-100 text-emerald-700"
             }`}
           >
             {isML ? "ML Mode" : "Clinical Mode"}
@@ -69,69 +71,84 @@ export default function ClassificationView() {
         )}
       </div>
 
-      {/* IMAGE */}
-      <div className="bg-white p-4 rounded shadow">
+
+      {/* IMAGE CARD */}
+      <div className="bg-white rounded-3xl shadow-xl p-6 border">
         <img
           src={imageSrc}
           alt="Labeled Cephalogram"
-          className="rounded max-w-full"
+          className="rounded-2xl w-full object-contain"
         />
       </div>
 
+
       {/* CLASSIFICATION SUMMARY */}
-      <div className="bg-blue-50 p-6 rounded shadow space-y-4">
-        <h3 className="text-xl font-semibold">
+      <div className="bg-gradient-to-r from-indigo-50 to-slate-50 p-8 rounded-3xl shadow-lg border space-y-6">
+
+        <h3 className="text-2xl font-semibold text-gray-800">
           Classification Summary
         </h3>
 
-        <div className="text-lg">
+        <div className="text-xl">
           <b>Skeletal Class:</b>{" "}
-          <span className="text-blue-700 font-semibold">
+          <span className="text-indigo-700 font-bold">
             {ceph.skeletal_class || "N/A"}
           </span>
         </div>
 
         {!isML && (
-          <>
+          <div className="grid md:grid-cols-3 gap-6 text-gray-700">
+
             {ceph.maxilla_status && (
-              <div>
-                <b>Maxilla:</b> {ceph.maxilla_status}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border">
+                <b>Maxilla</b>
+                <div className="mt-2 text-indigo-600 font-medium">
+                  {ceph.maxilla_status}
+                </div>
               </div>
             )}
 
             {ceph.mandible_status && (
-              <div>
-                <b>Mandible:</b> {ceph.mandible_status}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border">
+                <b>Mandible</b>
+                <div className="mt-2 text-indigo-600 font-medium">
+                  {ceph.mandible_status}
+                </div>
               </div>
             )}
 
             {ceph.divergence_status && (
-              <div>
-                <b>Divergence Pattern:</b>{" "}
-                {ceph.divergence_status}
+              <div className="bg-white p-5 rounded-2xl shadow-sm border">
+                <b>Divergence Pattern</b>
+                <div className="mt-2 text-indigo-600 font-medium">
+                  {ceph.divergence_status}
+                </div>
               </div>
             )}
-          </>
+
+          </div>
         )}
       </div>
 
+
       {/* ANGLES */}
       <div>
-        <h3 className="text-xl font-semibold mb-6">
+        <h3 className="text-2xl font-semibold text-gray-800 mb-8">
           Cephalometric Angles
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           {ceph.angles &&
             Object.entries(ceph.angles).map(([k, v]) => (
               <div
                 key={k}
-                className="p-5 bg-white border rounded shadow"
+                className="p-6 bg-white rounded-2xl shadow-md border hover:shadow-lg transition-all duration-200"
               >
-                <div className="font-medium text-gray-600">
+                <div className="font-medium text-gray-500">
                   {k}
                 </div>
-                <div className="text-2xl text-blue-600 mt-2">
+
+                <div className="text-3xl font-bold text-indigo-600 mt-3">
                   {typeof v === "number"
                     ? `${v.toFixed(2)}°`
                     : "N/A"}
@@ -141,57 +158,67 @@ export default function ClassificationView() {
         </div>
       </div>
 
+
       {/* AIRWAY */}
       {ceph.airway && (
         <div>
-          <h3 className="text-xl font-semibold mb-6">
+          <h3 className="text-2xl font-semibold text-gray-800 mb-8">
             Airway Analysis
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-5 bg-green-50 rounded shadow">
-              <b>Upper Airway</b>
-              <div className="text-lg mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            <div className="p-6 bg-emerald-50 rounded-2xl shadow-md border">
+              <b className="text-emerald-700">Upper Airway</b>
+              <div className="text-xl mt-3 font-semibold">
                 {ceph.airway.upper_airway_width != null
                   ? ceph.airway.upper_airway_width.toFixed(2) + " mm"
                   : "N/A"}
               </div>
             </div>
 
-            <div className="p-5 bg-yellow-50 rounded shadow">
-              <b>Lower Airway</b>
-              <div className="text-lg mt-2">
+            <div className="p-6 bg-amber-50 rounded-2xl shadow-md border">
+              <b className="text-amber-700">Lower Airway</b>
+              <div className="text-xl mt-3 font-semibold">
                 {ceph.airway.lower_airway_width != null
                   ? ceph.airway.lower_airway_width.toFixed(2) + " mm"
                   : "N/A"}
               </div>
             </div>
 
-            <div className="p-5 bg-purple-50 rounded shadow">
-              <b>Airway Area</b>
-              <div className="text-lg mt-2">
+            <div className="p-6 bg-purple-50 rounded-2xl shadow-md border">
+              <b className="text-purple-700">Airway Area</b>
+              <div className="text-xl mt-3 font-semibold">
                 {ceph.airway.airway_area != null
                   ? ceph.airway.airway_area.toFixed(2) + " sq.mm"
                   : "N/A"}
               </div>
             </div>
+
           </div>
         </div>
       )}
 
+
       {/* DOWNLOAD PDF */}
       {ceph.pdf_report && (
-        <div className="text-right">
+        <div className="flex justify-end pt-4">
           <a
             href={pdfSrc}
             target="_blank"
             rel="noreferrer"
-            className="px-6 py-2 bg-purple-600 text-white rounded shadow hover:bg-purple-700"
+            className="bg-gradient-to-r from-indigo-600 to-indigo-700
+                       hover:from-indigo-700 hover:to-indigo-800
+                       text-white font-semibold px-8 py-3
+                       rounded-2xl shadow-lg hover:shadow-xl
+                       transition-all duration-200 hover:-translate-y-1"
           >
             Download PDF Report
           </a>
         </div>
       )}
+
     </div>
-  );
+  </div>
+);
 }
