@@ -4,7 +4,6 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import pandas as pd
-import joblib
 from shapely.geometry import Polygon
 from huggingface_hub import hf_hub_download
 from dotenv import load_dotenv
@@ -14,7 +13,8 @@ load_dotenv()
 # ==================================================
 # GLOBAL CONFIG
 # ==================================================
-IMG_SIZE = 256
+IMG_SIZE_19 = 256     # For Segmentation + 19 landmark regression
+IMG_SIZE_11 = 320     # For 11 landmark heatmap model
 NUM_LANDMARKS = 19
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +22,7 @@ MODEL_DIR = os.path.join(BASE_DIR, "downloaded_models")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 # ==================================================
-# MODEL PATHS (HF)
+# MODEL PATHS
 # ==================================================
 SEG_MODEL_PATH = hf_hub_download(
     repo_id="gurunathasmb/cepha-models",
@@ -36,68 +36,76 @@ REG_MODEL_PATH = hf_hub_download(
     local_dir=MODEL_DIR
 )
 
-GB_MODEL_PATH = hf_hub_download(
+HM11_PATH = hf_hub_download(
     repo_id="gurunathasmb/cepha-models",
-    filename="GradientBoosting.joblib",
-    local_dir=MODEL_DIR
-)
-
-SCALER_PATH = hf_hub_download(
-    repo_id="gurunathasmb/cepha-models",
-    filename="scaler.joblib",
+    filename="ceph_heatmap_model.h5",
     local_dir=MODEL_DIR
 )
 
 _seg_model = None
 _reg_model = None
-_gb = None
-_scaler = None
-
+_hm11_model = None
 
 # ==================================================
-# LOAD MODELS (SAFE LOAD)
+# LOAD MODELS
 # ==================================================
 def load_models():
-    global _seg_model, _reg_model
-    try:
-        if _seg_model is None:
-            _seg_model = tf.keras.models.load_model(SEG_MODEL_PATH, compile=False)
-        if _reg_model is None:
-            _reg_model = tf.keras.models.load_model(REG_MODEL_PATH, compile=False)
-    except Exception as e:
-        print("Model load error:", e)
-        raise e
-    return _seg_model, _reg_model
-
-
-def load_gb():
-    global _gb, _scaler
-    try:
-        if _gb is None:
-            _gb = joblib.load(GB_MODEL_PATH)
-            _scaler = joblib.load(SCALER_PATH)
-    except Exception as e:
-        print("GB model load error:", e)
-        raise e
-    return _gb, _scaler
+    global _seg_model, _reg_model, _hm11_model
+    if _seg_model is None:
+        _seg_model = tf.keras.models.load_model(SEG_MODEL_PATH, compile=False)
+    if _reg_model is None:
+        _reg_model = tf.keras.models.load_model(REG_MODEL_PATH, compile=False)
+    if _hm11_model is None:
+        _hm11_model = tf.keras.models.load_model(HM11_PATH, compile=False)
+    return _seg_model, _reg_model, _hm11_model
 
 
 # ==================================================
-# PREPROCESS
+# PREPROCESS FOR 19 LANDMARK MODEL (256)
 # ==================================================
-def preprocess_image(image_bytes):
+def preprocess_19(image_bytes):
     img = Image.open(io.BytesIO(image_bytes)).convert("L")
-    img = img.resize((IMG_SIZE, IMG_SIZE))
+    img = img.resize((IMG_SIZE_19, IMG_SIZE_19))
     arr = np.array(img, dtype=np.float32) / 255.0
-    return arr.reshape(1, IMG_SIZE, IMG_SIZE, 1)
+    return arr.reshape(1, IMG_SIZE_19, IMG_SIZE_19, 1)
 
 
 # ==================================================
-# LANDMARK PREDICTION
+# PREPROCESS FOR 11 HEATMAP MODEL (320)
 # ==================================================
-def predict_landmarks(image_bytes):
-    seg_model, reg_model = load_models()
-    x = preprocess_image(image_bytes)
+def preprocess_11(image_bytes):
+    img = Image.open(io.BytesIO(image_bytes)).convert("L")
+    img = img.resize((IMG_SIZE_11, IMG_SIZE_11))
+    arr = np.array(img, dtype=np.float32) / 255.0
+    return arr.reshape(1, IMG_SIZE_11, IMG_SIZE_11, 1)
+
+
+# ==================================================
+# CORE 11 LANDMARK NAMES
+# ==================================================
+CORE_11 = [
+    "P1","P2","P5","P6","P8",
+    "P9","P10","P20","P21","P22","P23"
+]
+
+
+# ==================================================
+# HEATMAP TO COORDS (320)
+# ==================================================
+def heatmap_to_coords(hm):
+    coords = []
+    for i in range(hm.shape[-1]):
+        y, x = np.unravel_index(np.argmax(hm[..., i]), (IMG_SIZE_11, IMG_SIZE_11))
+        coords.append((x / IMG_SIZE_11, y / IMG_SIZE_11))
+    return coords
+
+
+# ==================================================
+# PREDICT 19 LANDMARKS (256)
+# ==================================================
+def predict_landmarks_19(image_bytes):
+    seg_model, reg_model, _ = load_models()
+    x = preprocess_19(image_bytes)
 
     mask = seg_model.predict(x, verbose=0)
     x_masked = x * mask
@@ -105,77 +113,114 @@ def predict_landmarks(image_bytes):
     preds = reg_model.predict(x_masked, verbose=0)[0]
 
     landmarks = []
-    for i in range(0, len(preds), 2):
+    for i in range(NUM_LANDMARKS):
         landmarks.append({
-            "name": f"P{i//2 + 1}",
-            "x": float(preds[i]),
-            "y": float(preds[i + 1])
+            "name": f"P{i+1}",
+            "x": float(preds[2*i]),
+            "y": float(preds[2*i+1])
         })
-
     return landmarks
 
 
 # ==================================================
-# ANGLE COMPUTATION (SAFE)
+# REFINE CORE 11 (320)
 # ==================================================
-def angle(v1, v2):
-    denom = (np.linalg.norm(v1) * np.linalg.norm(v2)) + 1e-9
-    return np.degrees(
-        np.arccos(
-            np.clip(np.dot(v1, v2) / denom, -1, 1)
-        )
-    )
+def refine_core_11(image_bytes, landmarks):
+    _, _, hm11 = load_models()
+    x = preprocess_11(image_bytes)
 
+    hm_pred = hm11.predict(x, verbose=0)[0]
+    coords11 = heatmap_to_coords(hm_pred)
+
+    name_map = {p["name"]: p for p in landmarks}
+
+    for name, (xv, yv) in zip(CORE_11, coords11):
+        name_map[name] = {
+            "name": name,
+            "x": float(xv),
+            "y": float(yv)
+        }
+
+    return list(name_map.values())
+
+
+# ==================================================
+# ANGLE CALCULATION
+# ==================================================
+
+def angle(v1, v2):
+    """
+    Returns acute angle between two lines (0–90°)
+    Direction ignored (clinical angle)
+    """
+    denom = (np.linalg.norm(v1) * np.linalg.norm(v2)) + 1e-9
+    cos_theta = np.dot(v1, v2) / denom
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+
+    theta = np.degrees(np.arccos(cos_theta))
+
+    # Ensure acute angle
+    if theta > 90:
+        theta = 180 - theta
+
+    return theta
 
 def compute_angles(landmarks):
+
     P = {p["name"]: np.array([p["x"], p["y"]]) for p in landmarks}
 
     try:
-        SN = P["P1"] - P["P2"]
+        # Lines
+        SN = P["P2"] - P["P1"]       # S -> N
+        NA = P["P5"] - P["P2"]       # N -> A
+        NB = P["P6"] - P["P2"]       # N -> B
+        GoGn = P["P10"] - P["P9"]    # Go -> Gn
 
-        angles = {
-            "SNA": angle(P["P5"] - P["P2"], SN),
-            "SNB": angle(P["P6"] - P["P2"], SN),
+        # Skeletal angles
+        SNA = angle(NA, SN)
+        SNB = angle(NB, SN)
+        ANB = SNA - SNB
+        SN_GoGn = angle(SN, GoGn)
+
+        # YEN angle
+        YEN = angle(
+            P["P1"] - P["P22"],
+            P["P23"] - P["P22"]
+        )
+
+        return {
+            "SNA": float(SNA),
+            "SNB": float(SNB),
+            "ANB": float(ANB),
+            "SN_GoGn": float(SN_GoGn),
+            "YEN": float(YEN)
         }
-
-        angles["ANB"] = angles["SNA"] - angles["SNB"]
-        angles["FMA"] = angle(P["P4"] - P["P3"], P["P10"] - P["P8"])
-        angles["SN_GoGn"] = angle(SN, P["P9"] - P["P10"])
-        angles["U1_SN"] = angle(P["P12"] - P["P11"], SN)
-        angles["L1_MP"] = angle(P["P11"] - P["P12"], P["P10"] - P["P8"])
-        angles["Interincisal"] = angle(P["P12"] - P["P11"], P["P11"] - P["P12"])
-
-        return angles
 
     except Exception as e:
         print("Angle computation error:", e)
         return {}
 
-
 # ==================================================
-# AIRWAY (SAFE)
+# AIRWAY
 # ==================================================
 def compute_airway(landmarks):
     P = {p["name"]: np.array([p["x"], p["y"]]) for p in landmarks}
     try:
-        upper = np.linalg.norm(P["P7"] - P["P13"])
-        lower = np.linalg.norm(P["P17"] - P["P18"])
-        area = Polygon([P["P15"], P["P13"], P["P14"], P["P16"]]).area
+        upper = np.linalg.norm(P["P20"] - P["P21"])
+        
 
         return {
             "upper_airway_width": float(upper),
-            "lower_airway_width": float(lower),
-            "airway_area": float(area)
         }
     except:
         return {
             "upper_airway_width": None,
-            "lower_airway_width": None,
-            "airway_area": None
+            
         }
 
+
 # ==================================================
-# CLINICAL INTERPRETATION
+# CLINICAL CLASSIFICATION (UNCHANGED)
 # ==================================================
 def clinical_classify(angles):
     SNA = angles.get("SNA")
@@ -229,36 +274,18 @@ def clinical_classify(angles):
 
 
 # ==================================================
-# ML SKELETAL CLASSIFIER
+# DRAW + SAVE IMAGE
 # ==================================================
-def ml_classify(angles):
-    gb, scaler = load_gb()
+def save_labeled_image(image_bytes, landmarks, path, angles=None):
 
-    feature_order = [
-        "SNA", "SNB", "ANB",
-        "FMA", "SN_GoGn",
-        "U1_SN", "L1_MP", "Interincisal"
-    ]
-
-    values = [angles.get(f, 0) for f in feature_order]
-    X = scaler.transform([values])
-    pred = gb.predict(X)[0]
-
-    class_map = {0: "Class I", 1: "Class II", 2: "Class III"}
-    return class_map.get(pred, "Unknown")
-
-
-# ==================================================
-# DRAW IMAGE
-# ==================================================
-def save_labeled_image(image_bytes, landmarks, path):
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     w, h = img.size
     draw = ImageDraw.Draw(img)
 
-    r = max(1, int(min(w, h) * 0.006))
-    lw = max(1, int(min(w, h) * 0.003))
-    fs = max(8, int(min(w, h) * 0.015))
+    # Softer scaling (smaller than before)
+    r = max(1, int(min(w, h) * 0.006))   # smaller landmark
+    lw = max(1, int(min(w, h) * 0.003))  # thinner lines
+    fs = max(8, int(min(w, h) * 0.015))  # smaller font
 
     try:
         font = ImageFont.truetype("arial.ttf", fs)
@@ -268,12 +295,15 @@ def save_labeled_image(image_bytes, landmarks, path):
     def pt(p):
         return int(p["x"] * w), int(p["y"] * h)
 
+    L = {p["name"]: pt(p) for p in landmarks}
+
     # ===============================
-    # DRAW LANDMARKS
+    # DRAW LANDMARK POINTS
     # ===============================
     for p in landmarks:
         x, y = pt(p)
 
+        # small white outline
         draw.ellipse((x-r-1, y-r-1, x+r+1, y+r+1), fill="white")
         draw.ellipse((x-r, y-r, x+r, y+r), fill="red")
 
@@ -281,47 +311,96 @@ def save_labeled_image(image_bytes, landmarks, path):
                   fill="yellow", font=font)
 
     # ===============================
-    # DRAW IMPORTANT LINES
+    # DRAW LINES
     # ===============================
-    L = {p["name"]: pt(p) for p in landmarks}
-
     def draw_line(a, b, color):
         if a in L and b in L:
             draw.line((L[a], L[b]), fill=color, width=lw)
 
-    # Cephalometric reference lines
-    draw_line("P1", "P2", "#22c55e")   # SN
-    draw_line("P2", "P5", "#3b82f6")   # NA
-    draw_line("P2", "P6", "#ef4444")   # NB
-    draw_line("P10", "P9", "#f59e0b")  # Mandibular plane
+    draw_line("P1", "P2", "#22c55e")    # SN
+    draw_line("P2", "P5", "#3b82f6")    # NA
+    draw_line("P2", "P6", "#ef4444")    # NB
+    draw_line("P10", "P9", "#f59e0b")   # Mandibular plane
+    draw_line("P20", "P21", "#2dc225")  # Airway ref
 
-    # Airway references
-    draw_line("P7", "P13", "cyan")
-    draw_line("P15", "P14", "yellow")
-    draw_line("P17", "P18", "magenta")
+    # YEN triangle
+    draw_line("P1", "P22", "cyan")
+    draw_line("P22", "P23", "cyan")
+    draw_line("P1", "P23", "cyan")
+
+    # ===============================
+    # ANGLE TEXT
+    # ===============================
+    if angles is not None:
+
+        def write_angle(text, landmark):
+            if landmark in L:
+                x, y = L[landmark]
+                draw.text((x + 6, y + 6), text,
+                          fill="white", font=font)
+
+        if "SNA" in angles:
+            write_angle(f"SNA: {angles['SNA']:.1f}°", "P2")
+
+        if "SNB" in angles:
+            write_angle(f"SNB: {angles['SNB']:.1f}°", "P2")
+
+        if "ANB" in angles:
+            write_angle(f"ANB: {angles['ANB']:.1f}°", "P2")
+
+        if "SN_GoGn" in angles:
+            write_angle(f"SN-GoGn: {angles['SN_GoGn']:.1f}°", "P10")
+
+        if "YEN" in angles:
+            write_angle(f"YEN: {angles['YEN']:.1f}°", "P22")
 
     img.save(path, quality=95)
     return path
+# ==================================================
+# CLINICAL PIPELINE
+# ==================================================
+def predict_clinical_landmarks_only(image_bytes, ceph_id):
 
-# ==================================================
-# 1️⃣ CLINICAL FULL PIPELINE
-# ==================================================
-def process_clinical(image_bytes, ceph_id):
-    landmarks = predict_landmarks(image_bytes)
-    angles = compute_angles(landmarks)
+    _, _, hm11 = load_models()
+    x = preprocess_11(image_bytes)
+
+    hm_pred = hm11.predict(x, verbose=0)[0]
+    coords11 = heatmap_to_coords(hm_pred)
+
+    landmarks = []
+    for name, (xv, yv) in zip(CORE_11, coords11):
+        landmarks.append({
+            "name": name,
+            "x": float(xv),
+            "y": float(yv)
+        })
+
+    os.makedirs("outputs", exist_ok=True)
+    preview_path = f"outputs/ceph_{ceph_id}_clinical_preview.jpg"
+
+    save_labeled_image(image_bytes, landmarks, preview_path)
+
+    return {
+        "landmarks": landmarks,
+        "preview_image": preview_path
+    }
+
+def process_clinical_finalize(image_bytes, ceph_id, edited_landmarks):
+
+    angles = compute_angles(edited_landmarks)
     clinical_results = clinical_classify(angles)
-    airway = compute_airway(landmarks)
+    airway = compute_airway(edited_landmarks)
 
     os.makedirs("outputs", exist_ok=True)
 
     img_path = f"outputs/ceph_{ceph_id}_clinical.jpg"
-    save_labeled_image(image_bytes, landmarks, img_path)
+    save_labeled_image(image_bytes, edited_landmarks, img_path, angles)
 
     excel_path = f"outputs/ceph_{ceph_id}_clinical.xlsx"
-    pd.DataFrame(landmarks).to_excel(excel_path, index=False)
+    pd.DataFrame(edited_landmarks).to_excel(excel_path, index=False)
 
     return {
-        "landmarks": landmarks,
+        "landmarks": edited_landmarks,
         "angles": angles,
         "mode_used": "clinical",
         "skeletal_class": clinical_results["skeletal_class"],
@@ -332,15 +411,16 @@ def process_clinical(image_bytes, ceph_id):
         "output_image": img_path,
         "excel_file": excel_path
     }
-
-
 # ==================================================
-# 2️⃣ ML STAGE 1 – LANDMARK ONLY
+# ML STAGE 1
 # ==================================================
 def predict_landmarks_only(image_bytes, ceph_id):
-    landmarks = predict_landmarks(image_bytes)
+
+    landmarks19 = predict_landmarks_19(image_bytes)
+    landmarks = refine_core_11(image_bytes, landmarks19)
 
     os.makedirs("outputs", exist_ok=True)
+
     preview_path = f"outputs/ceph_{ceph_id}_preview.jpg"
     save_labeled_image(image_bytes, landmarks, preview_path)
 
@@ -351,22 +431,27 @@ def predict_landmarks_only(image_bytes, ceph_id):
 
 
 # ==================================================
-# 3️⃣ ML STAGE 2 – FINALIZE
+# ML FINAL (AFTER MANUAL EDIT)
 # ==================================================
 def process_ml_finalize(image_bytes, ceph_id, landmarks):
+
     angles = compute_angles(landmarks)
-
     clinical_results = clinical_classify(angles)
-
     airway = compute_airway(landmarks)
 
     os.makedirs("outputs", exist_ok=True)
 
     img_path = f"outputs/ceph_{ceph_id}_ml.jpg"
-    save_labeled_image(image_bytes, landmarks, img_path)
+    save_labeled_image(image_bytes, landmarks, img_path, angles)
 
     excel_path = f"outputs/ceph_{ceph_id}_ml.xlsx"
-    pd.DataFrame(landmarks).to_excel(excel_path, index=False)
+    df = pd.DataFrame(landmarks)
+    df["angle_SNA"] = angles.get("SNA", 0)
+    df["angle_SNB"] = angles.get("SNB", 0)
+    df["angle_ANB"] = angles.get("ANB", 0)
+    df["angle_SN_GoGn"] = angles.get("SN_GoGn", 0)
+    df["angle_YEN"] = angles.get("YEN", 0)
+    df.to_excel(excel_path, index=False)
 
     return {
         "landmarks": landmarks,

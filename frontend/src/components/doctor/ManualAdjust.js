@@ -12,31 +12,38 @@ export default function ManualAdjust() {
     imageFile,
     previewImage,
     predictedLandmarks,
+    mode,   // 🔥 IMPORTANT
   } = location.state || {};
 
   // ================================
-  // LANDMARK NAME MAP (CORE 19)
+  // LANDMARK NAME MAP (UPDATED 23)
   // ================================
   const landmarkNames = {
     P1: "Sella",
     P2: "Nasion",
     P3: "Orbitale",
     P4: "Porion",
-    P5: "Subspinale (A Point)",
-    P6: "Supramentale (B Point)",
+    P5: "Point A",
+    P6: "Point B",
     P7: "Pogonion",
     P8: "Menton",
     P9: "Gnathion",
-    P10: "gonion",
+    P10: "Gonion",
     P11: "Incision Inferius",
     P12: "Incision Superius",
     P13: "Upper Lip",
     P14: "Lower Lip",
-    P15: "subnasale",
+    P15: "Subnasale",
     P16: "Soft Tissue Pogonion",
     P17: "Posterior Nasal Spine",
     P18: "Anterior Nasal Spine",
     P19: "Articulare",
+
+    // 🔥 NEW CORE POINTS
+    P20: "PB Upper",
+    P21: "Anterior Border Upper",
+    P22: "M-Point",
+    P23: "G-Point",
   };
 
   const API_URL = process.env.REACT_APP_API_URL;
@@ -67,7 +74,7 @@ export default function ManualAdjust() {
     return <p className="p-8">Invalid navigation state</p>;
 
   // ================================
-  // DRAG HANDLING
+  // DRAG
   // ================================
   const handleMouseDown = (index) => {
     setSelectedIndex(index);
@@ -99,9 +106,14 @@ export default function ManualAdjust() {
   };
 
   // ================================
-  // ADD EXTRA (MAX 5)
+  // ADD EXTRA (Only in ML mode)
   // ================================
   const addPoint = () => {
+    if (mode === "clinical") {
+      alert("Clinical mode does not allow extra landmarks.");
+      return;
+    }
+
     const extraCount = landmarks.filter(l => l.isExtra).length;
     if (extraCount >= 5) {
       alert("Maximum 5 extra landmarks allowed.");
@@ -119,13 +131,13 @@ export default function ManualAdjust() {
   };
 
   // ================================
-  // DELETE EXTRA ONLY
+  // DELETE EXTRA
   // ================================
   const deleteSelectedPoint = () => {
     if (selectedIndex === null) return;
 
     if (!landmarks[selectedIndex].isExtra) {
-      alert("Core 19 landmarks cannot be deleted.");
+      alert("Core landmarks cannot be deleted.");
       return;
     }
 
@@ -151,18 +163,16 @@ export default function ManualAdjust() {
     setSelectedIndex(null);
   };
 
-  // ================================
-  // APPLY ALL
-  // ================================
   const applyAll = () => {
     setSelectedIndex(-1);
   };
 
   // ================================
-  // FINALIZE
+  // FINALIZE (MODE SAFE)
   // ================================
   const finalize = async () => {
     setLoading(true);
+
     try {
       const formData = new FormData();
       formData.append("file", imageFile);
@@ -171,14 +181,19 @@ export default function ManualAdjust() {
       const headers = getAuthHeaders();
       delete headers["Content-Type"];
 
-      const res = await fetch(
-        `${API_URL}/ml-finalize/${patientId}`,
-        {
-          method: "POST",
-          headers,
-          body: formData,
-        }
-      );
+      let endpoint = "";
+
+      if (mode === "clinical") {
+        endpoint = `${API_URL}/clinical-finalize/${patientId}`;
+      } else {
+        endpoint = `${API_URL}/ml-finalize/${patientId}`;
+      }
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
 
       if (!res.ok) throw new Error("Finalization failed");
 
@@ -206,7 +221,7 @@ export default function ManualAdjust() {
   return (
     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
 
-      {/* IMAGE PANEL */}
+      {/* IMAGE */}
       <div
         className="md:col-span-2 relative border rounded shadow"
         onMouseMove={handleMouseMove}
@@ -252,10 +267,10 @@ export default function ManualAdjust() {
         })}
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* SIDE PANEL */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">
-          Manual Landmark Adjustment
+          Manual Landmark Adjustment ({mode?.toUpperCase()})
         </h2>
 
         {selectedIndex !== null && selectedIndex !== -1 && (
@@ -273,7 +288,7 @@ export default function ManualAdjust() {
           </div>
         )}
 
-        {/* LANDMARK LIST */}
+        {/* LIST */}
         <div className="max-h-64 overflow-y-auto border rounded p-2">
           {landmarks.map((p, i) => (
             <div
@@ -290,19 +305,23 @@ export default function ManualAdjust() {
           ))}
         </div>
 
-        <button
-          onClick={addPoint}
-          className="w-full px-4 py-2 bg-green-600 text-white rounded"
-        >
-          ➕ Add Extra Landmark
-        </button>
+        {mode === "ml" && (
+          <>
+            <button
+              onClick={addPoint}
+              className="w-full px-4 py-2 bg-green-600 text-white rounded"
+            >
+              ➕ Add Extra Landmark
+            </button>
 
-        <button
-          onClick={deleteSelectedPoint}
-          className="w-full px-4 py-2 bg-red-600 text-white rounded"
-        >
-          ❌ Delete Selected (Extra Only)
-        </button>
+            <button
+              onClick={deleteSelectedPoint}
+              className="w-full px-4 py-2 bg-red-600 text-white rounded"
+            >
+              ❌ Delete Selected (Extra Only)
+            </button>
+          </>
+        )}
 
         <button
           onClick={applyAll}

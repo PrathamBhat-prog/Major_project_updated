@@ -25,7 +25,6 @@ STORAGE_MODE = os.getenv("STORAGE_MODE", "local")
 # INIT
 # ==================================================
 models.Base.metadata.create_all(bind=database.engine)
-
 app = FastAPI(title="CephAI Backend")
 
 # ==================================================
@@ -101,11 +100,28 @@ def get_cephalogram(
     }
 
 # ==================================================
-# CLINICAL PIPELINE
+# ================= CLINICAL ======================
 # ==================================================
-@app.post("/predict/{patient_id}", response_model=schemas.PredictionOut)
-async def predict_clinical(
+
+# ---------------- STAGE 1 (Preview Only) ----------------
+@app.post("/clinical-preview/{patient_id}")
+async def clinical_preview(
     patient_id: int,
+    file: UploadFile = File(...),
+    user: models.User = Depends(utils.get_current_user)
+):
+    image_bytes = await file.read()
+
+    return ml_inference.predict_clinical_landmarks_only(
+        image_bytes=image_bytes,
+        ceph_id=patient_id
+    )
+
+# ---------------- STAGE 2 (Finalize After Edit) ----------------
+@app.post("/clinical-finalize/{patient_id}", response_model=schemas.PredictionOut)
+async def clinical_finalize(
+    patient_id: int,
+    landmarks: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     user: models.User = Depends(utils.get_current_user)
@@ -113,9 +129,15 @@ async def predict_clinical(
     start = time.time()
     image_bytes = await file.read()
 
-    result = ml_inference.process_clinical(
+    try:
+        parsed_landmarks = json.loads(landmarks)
+    except:
+        raise HTTPException(400, "Invalid landmarks")
+
+    result = ml_inference.process_clinical_finalize(
         image_bytes=image_bytes,
-        ceph_id=patient_id
+        ceph_id=patient_id,
+        edited_landmarks=parsed_landmarks
     )
 
     return await finalize_prediction(
@@ -128,8 +150,9 @@ async def predict_clinical(
     )
 
 # ==================================================
-# ML LANDMARK PREVIEW
+# ================= ML ============================
 # ==================================================
+
 @app.post("/ml-predict/{patient_id}")
 async def ml_predict(
     patient_id: int,
@@ -143,9 +166,6 @@ async def ml_predict(
         ceph_id=patient_id
     )
 
-# ==================================================
-# ML FINALIZE
-# ==================================================
 @app.post("/ml-finalize/{patient_id}", response_model=schemas.PredictionOut)
 async def ml_finalize(
     patient_id: int,
@@ -178,7 +198,7 @@ async def ml_finalize(
     )
 
 # ==================================================
-# FINALIZE FUNCTION (SAFE VERSION)
+# FINALIZE FUNCTION (UNCHANGED)
 # ==================================================
 async def finalize_prediction(
     result,
@@ -192,7 +212,6 @@ async def finalize_prediction(
         raise HTTPException(500, "ML result is None")
 
     try:
-        # Save image
         with open(result["output_image"], "rb") as f:
             image_url = upload_bytes(
                 f.read(),
@@ -202,7 +221,6 @@ async def finalize_prediction(
                 original_name=file.filename
             )
 
-        # Save excel
         with open(result["excel_file"], "rb") as f:
             excel_url = upload_bytes(
                 f.read(),
@@ -212,7 +230,6 @@ async def finalize_prediction(
                 original_name=file.filename
             )
 
-        # Generate PDF
         pdf_buffer = io.BytesIO()
 
         generate_ceph_report(
@@ -239,7 +256,6 @@ async def finalize_prediction(
 
         append_to_master_excel(file.filename, result)
 
-        # Build prediction data
         prediction_data = dict(
             patient_id=patient_id,
             mode_used=result["mode_used"],
@@ -256,7 +272,6 @@ async def finalize_prediction(
             pdf_path=pdf_url
         )
 
-        # Add doctor_id only if exists in model
         if hasattr(models.Prediction, "doctor_id"):
             prediction_data["doctor_id"] = doctor_id
 
