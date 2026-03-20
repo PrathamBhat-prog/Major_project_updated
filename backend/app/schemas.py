@@ -110,6 +110,7 @@ class AirwayOut(BaseModel):
     upper_airway_width: Optional[float] = None
     lower_airway_width: Optional[float] = None
     airway_area: Optional[float] = None
+    airway_class: Optional[str] = None
 
 
 # ==================================================
@@ -145,7 +146,7 @@ class PredictionOut(BaseModel):
     divergence_status: Optional[str] = None
 
     airway: Optional[Dict] = None
-
+    airway_class: Optional[str] = None
     # File outputs
     output_image: str
     excel_file: str

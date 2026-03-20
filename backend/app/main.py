@@ -93,6 +93,7 @@ def get_cephalogram(
         "mandible_status": pred.mandible_status,
         "divergence_status": pred.divergence_status,
         "airway": pred.airway,
+        "airway_class": pred.airway_class,
         "image_url": pred.image_path,
         "excel_file": pred.excel_path,
         "pdf_report": pred.pdf_path,
@@ -241,7 +242,8 @@ async def finalize_prediction(
             result.get("maxilla_status"),
             result.get("mandible_status"),
             result.get("divergence_status"),
-            result.get("airway")
+            result.get("airway"),
+            result.get("airway_class")
         )
 
         pdf_buffer.seek(0)
@@ -267,6 +269,8 @@ async def finalize_prediction(
             mandible_status=result.get("mandible_status"),
             divergence_status=result.get("divergence_status"),
             airway=result["airway"],
+            airway_class=result.get("airway_class"),
+
             image_path=image_url,
             excel_path=excel_url,
             pdf_path=pdf_url
@@ -297,6 +301,7 @@ async def finalize_prediction(
             "mandible_status": result.get("mandible_status"),
             "divergence_status": result.get("divergence_status"),
             "airway": result["airway"],
+            "airway_class": result.get("airway_class"),
             "output_image": image_url,
             "excel_file": excel_url,
             "pdf_report": pdf_url

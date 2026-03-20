@@ -164,6 +164,14 @@ def angle(v1, v2):
         theta = 180 - theta
 
     return theta
+def full_angle(v1, v2):
+    denom = (np.linalg.norm(v1) * np.linalg.norm(v2)) + 1e-9
+    cos_theta = np.dot(v1, v2) / denom
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+
+    theta = np.degrees(np.arccos(cos_theta))
+
+    return theta   # NO conversion
 
 def compute_angles(landmarks):
 
@@ -183,7 +191,7 @@ def compute_angles(landmarks):
         SN_GoGn = angle(SN, GoGn)
 
         # YEN angle
-        YEN = angle(
+        YEN =  full_angle(
             P["P1"] - P["P22"],
             P["P23"] - P["P22"]
         )
@@ -203,22 +211,70 @@ def compute_angles(landmarks):
 # ==================================================
 # AIRWAY
 # ==================================================
-def compute_airway(landmarks):
-    P = {p["name"]: np.array([p["x"], p["y"]]) for p in landmarks}
-    try:
-        upper = np.linalg.norm(P["P20"] - P["P21"])
-        
+def compute_airway(landmarks, image_bytes):
 
-        return {
-            "upper_airway_width": float(upper),
-        }
-    except:
-        return {
-            "upper_airway_width": None,
-            
-        }
+    img = Image.open(io.BytesIO(image_bytes))
+    w, h = img.size
 
+    # Convert normalized → pixel
+    P = {}
+    for p in landmarks:
+        if p["x"] is None or p["y"] is None:
+            continue
 
+        if np.isnan(p["x"]) or np.isnan(p["y"]):
+            continue
+
+        px = float(p["x"]) * w
+        py = float(p["y"]) * h
+
+        P[p["name"]] = np.array([px, py])
+
+    # ✅ check existence
+    if "P20" not in P or "P21" not in P:
+        print("Missing P20/P21")
+        return {"upper_airway": None}
+
+    p20 = P["P20"]
+    p21 = P["P21"]
+
+    # ✅ compute pixel distance
+    upper_px = np.linalg.norm(p20 - p21)
+
+    if upper_px < 1:
+        print("Too small airway distance")
+        return {"upper_airway": None}
+
+    # ✅ dynamic scaling (stable)
+    if "P1" in P and "P2" in P:
+        sn_px = np.linalg.norm(P["P2"] - P["P1"])
+        if sn_px > 10:   # avoid tiny values
+            scale = 65.0 / sn_px
+        else:
+            scale = 0.1
+    else:
+        scale = 0.1
+
+    upper_mm = upper_px * scale
+
+    return {
+        "upper_airway": float(round(upper_mm, 2))
+    }
+def classify_airway(mm):
+    if mm is None:
+        return "Unknown"
+
+    elif mm < 10:
+        return "Narrow Airway"
+
+    elif mm < 15:
+        return "Moderate Airway"
+
+    elif mm <= 25:
+        return "Normal Airway"
+
+    else:
+        return "Wide Airway"
 # ==================================================
 # CLINICAL CLASSIFICATION (UNCHANGED)
 # ==================================================
@@ -226,14 +282,14 @@ def clinical_classify(angles):
     SNA = angles.get("SNA")
     SNB = angles.get("SNB")
     ANB = angles.get("ANB")
-    FMA = angles.get("FMA")
-    SN_MP = angles.get("SN_GoGn")
+    YEN = angles.get("YEN")
+    SN_GoGn = angles.get("SN_GoGn")
 
     if ANB is None:
         skeletal = "Unknown"
-    elif ANB < 1:
+    elif YEN < 117:
         skeletal = "Class III"
-    elif ANB > 3:
+    elif YEN > 123:
         skeletal = "Class II"
     else:
         skeletal = "Class I"
@@ -256,11 +312,11 @@ def clinical_classify(angles):
     else:
         mandible = "Normal Mandible"
 
-    if FMA is None or SN_MP is None:
+    if  SN_GoGn is None:
         divergence = "Unknown"
-    elif FMA > 29 or SN_MP > 36:
+    elif SN_GoGn > 36:
         divergence = "Hyperdivergent"
-    elif FMA < 21 or SN_MP < 28:
+    elif SN_GoGn < 28:
         divergence = "Hypodivergent"
     else:
         divergence = "Normodivergent"
@@ -389,7 +445,8 @@ def process_clinical_finalize(image_bytes, ceph_id, edited_landmarks):
 
     angles = compute_angles(edited_landmarks)
     clinical_results = clinical_classify(angles)
-    airway = compute_airway(edited_landmarks)
+    airway = compute_airway(edited_landmarks, image_bytes)
+    airway_class = classify_airway(airway["upper_airway"])
 
     os.makedirs("outputs", exist_ok=True)
 
@@ -408,6 +465,7 @@ def process_clinical_finalize(image_bytes, ceph_id, edited_landmarks):
         "mandible_status": clinical_results["mandible_status"],
         "divergence_status": clinical_results["divergence_status"],
         "airway": airway,
+        "airway_class": airway_class,
         "output_image": img_path,
         "excel_file": excel_path
     }
@@ -437,8 +495,8 @@ def process_ml_finalize(image_bytes, ceph_id, landmarks):
 
     angles = compute_angles(landmarks)
     clinical_results = clinical_classify(angles)
-    airway = compute_airway(landmarks)
-
+    airway = compute_airway(landmarks, image_bytes)
+    airway_class = classify_airway(airway["upper_airway"])
     os.makedirs("outputs", exist_ok=True)
 
     img_path = f"outputs/ceph_{ceph_id}_ml.jpg"
@@ -462,6 +520,7 @@ def process_ml_finalize(image_bytes, ceph_id, landmarks):
         "mandible_status": clinical_results["mandible_status"],
         "divergence_status": clinical_results["divergence_status"],
         "airway": airway,
+        "airway_class": airway_class,
         "output_image": img_path,
         "excel_file": excel_path
     }

@@ -126,7 +126,8 @@ def generate_ceph_pdf(
     patient_name=None,
     patient_id=None,
     heatmaps=None,             # optional: heatmaps tensor or array (C,H,W) or (1,C,H,W)
-    notes=None
+    notes=None,
+    airway_class=None
 ):
     # sanitize image
     img_np = ensure_rgb_array(image)

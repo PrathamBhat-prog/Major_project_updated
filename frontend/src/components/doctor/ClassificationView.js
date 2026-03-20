@@ -171,29 +171,18 @@ export default function ClassificationView() {
             <div className="p-6 bg-emerald-50 rounded-2xl shadow-md border">
               <b className="text-emerald-700">Upper Airway</b>
               <div className="text-xl mt-3 font-semibold">
-                {ceph.airway.upper_airway_width != null
-                  ? ceph.airway.upper_airway_width.toFixed(2) + " mm"
+                {ceph.airway.upper_airway != null
+                  ? ceph.airway.upper_airway.toFixed(2) + " mm"
                   : "N/A"}
               </div>
             </div>
-
-            <div className="p-6 bg-amber-50 rounded-2xl shadow-md border">
-              <b className="text-amber-700">Lower Airway</b>
-              <div className="text-xl mt-3 font-semibold">
-                {ceph.airway.lower_airway_width != null
-                  ? ceph.airway.lower_airway_width.toFixed(2) + " mm"
-                  : "N/A"}
-              </div>
-            </div>
-
-            <div className="p-6 bg-purple-50 rounded-2xl shadow-md border">
-              <b className="text-purple-700">Airway Area</b>
-              <div className="text-xl mt-3 font-semibold">
-                {ceph.airway.airway_area != null
-                  ? ceph.airway.airway_area.toFixed(2) + " sq.mm"
-                  : "N/A"}
-              </div>
-            </div>
+             {/* 🔥 NEW: Classification */}
+     <div className="p-6 bg-purple-50 rounded-2xl shadow-md border">
+  <b className="text-purple-700">Airway Classification</b>
+  <div className="text-xl mt-3 font-semibold">
+    {ceph.airway_class ?? "N/A"}
+  </div>
+</div>
 
           </div>
         </div>

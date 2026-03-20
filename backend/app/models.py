@@ -73,6 +73,9 @@ class Patient(Base):
 # =========================================================
 # 🧠 PREDICTION TABLE
 # =========================================================
+# =========================================================
+# 🧠 PREDICTION TABLE
+# =========================================================
 class Prediction(Base):
     __tablename__ = "predictions"
 
@@ -86,11 +89,10 @@ class Prediction(Base):
 
     # Model info
     model_name = Column(String)
-
     model_version = Column(String, default="v1.0")
 
     # Mode used
-    mode_used = Column(String)  # clinical or ml
+    mode_used = Column(String)
 
     # Landmark coordinates
     result = Column(JSON)
@@ -100,21 +102,18 @@ class Prediction(Base):
 
     # Clinical outputs
     skeletal_class = Column(String)
-
     maxilla_status = Column(String)
-
     mandible_status = Column(String)
-
     divergence_status = Column(String)
 
     # Airway measurements
     airway = Column(JSON)
 
+    airway_class = Column(String, nullable=True)   # ✅ ADD THIS
+
     # File paths
     image_path = Column(String)
-
     excel_path = Column(String)
-
     pdf_path = Column(String)
 
     # Performance tracking

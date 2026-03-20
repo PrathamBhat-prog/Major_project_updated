@@ -1,19 +1,22 @@
 import os
 from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Image,
-    Table,
-    TableStyle
+    SimpleDocTemplate, Paragraph, Spacer, Image,
+    Table, TableStyle, PageBreak, HRFlowable, KeepTogether
 )
-from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.styles import getSampleStyleSheet
+
+
+# =========================
+# UI COLORS (ADDED)
+# =========================
+header_bg_color = colors.HexColor("#e0ecff")
+primary_color = colors.HexColor("#1e40af")
+soft_bg = colors.HexColor("#f8fafc")
+highlight_bg = colors.HexColor("#ecfdf5")
+note_bg = colors.HexColor("#fefce8")
 
 
 def generate_ceph_report(
@@ -25,114 +28,231 @@ def generate_ceph_report(
     maxilla_status=None,
     mandible_status=None,
     divergence_status=None,
-    airway=None
+    airway=None,
+    airway_class=None
 ):
-    """
-    Generates PDF report for cephalometric analysis.
-    """
 
-    doc = SimpleDocTemplate(
-        save_path,
-        pagesize=A4
-    )
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(BASE_DIR, "assets", "logo.png")
 
+    doc = SimpleDocTemplate(save_path, pagesize=A4)
     elements = []
-
     styles = getSampleStyleSheet()
 
-    title_style = styles["Heading1"]
-    normal_style = styles["Normal"]
+    # =========================
+    # STYLES
+    # =========================
+    title_style = ParagraphStyle(
+        name="Title",
+        parent=styles["Heading1"],
+        fontSize=16,
+        alignment=1,
+        textColor=colors.HexColor("#0f172a")
+    )
 
-    # ==========================================
-    # Title
-    # ==========================================
-    elements.append(Paragraph("Cephalometric Analysis Report", title_style))
-    elements.append(Spacer(1, 0.3 * inch))
+    subtitle_style = ParagraphStyle(
+        name="Subtitle",
+        parent=styles["Normal"],
+        fontSize=10,
+        alignment=1,
+        textColor=colors.grey
+    )
 
-    # ==========================================
-    # Patient Info
-    # ==========================================
-    elements.append(Paragraph(f"<b>Patient ID:</b> {patient_id}", normal_style))
-    elements.append(Paragraph(f"<b>Skeletal Class:</b> {skeletal_class}", normal_style))
+    section_style = ParagraphStyle(
+        name="Section",
+        parent=styles["Heading2"],
+        fontSize=13,
+        textColor=primary_color,
+        spaceAfter=6
+    )
 
-    if maxilla_status:
-        elements.append(Paragraph(f"<b>Maxilla Status:</b> {maxilla_status}", normal_style))
+    normal_style = ParagraphStyle(
+        name="NormalCustom",
+        parent=styles["Normal"],
+        fontSize=10,
+        spaceAfter=4
+    )
 
-    if mandible_status:
-        elements.append(Paragraph(f"<b>Mandible Status:</b> {mandible_status}", normal_style))
+    highlight_style = ParagraphStyle(
+        name="Highlight",
+        parent=styles["Normal"],
+        fontSize=11,
+        textColor=colors.HexColor("#059669"),
+        spaceAfter=4
+    )
 
-    if divergence_status:
-        elements.append(Paragraph(f"<b>Divergence Pattern:</b> {divergence_status}", normal_style))
+    # =========================
+    # HEADER
+    # =========================
+    def header():
+        logo = ""
+        if os.path.exists(logo_path):
+            logo = Image(logo_path, width=1.0*inch, height=1.0*inch)
 
-    elements.append(Spacer(1, 0.3 * inch))
-
-    # ==========================================
-    # Angles Table
-    # ==========================================
-    if angles:
-        elements.append(Paragraph("<b>Cephalometric Angles</b>", styles["Heading2"]))
-        elements.append(Spacer(1, 0.2 * inch))
-
-        table_data = [["Angle", "Value"]]
-
-        for k, v in angles.items():
-            table_data.append([k, str(v)])
-
-        table = Table(table_data, colWidths=[2.5 * inch, 2 * inch])
-
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (1, 1), (-1, -1), "CENTER")
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 0.3 * inch))
-
-    # ==========================================
-    # Airway Section
-    # ==========================================
-    if airway:
-        elements.append(Paragraph("<b>Airway Measurements</b>", styles["Heading2"]))
-        elements.append(Spacer(1, 0.2 * inch))
-
-        airway_table_data = [
-            ["Upper Airway Width", airway.get("upper_airway_width", "")],
-            ["Lower Airway Width", airway.get("lower_airway_width", "")],
-            ["Airway Area", airway.get("airway_area", "")]
+        header_text = [
+            Paragraph("<b>Dayananda Sagar College of Dental Sciences</b>", title_style),
+            Paragraph("Department of Orthodontics", subtitle_style),
+            Paragraph("<b>CephAI Clinical Report</b>", subtitle_style),
         ]
 
-        airway_table = Table(airway_table_data, colWidths=[2.5 * inch, 2 * inch])
+        table = Table([[logo, header_text]], colWidths=[1.2*inch, 4.8*inch])
 
-        airway_table.setStyle(TableStyle([
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (1, 0), (-1, -1), "CENTER")
+        table.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("BACKGROUND", (0,0), (-1,-1), header_bg_color),
+            ("BOX", (0,0), (-1,-1), 1.2, primary_color),
         ]))
 
-        elements.append(airway_table)
-        elements.append(Spacer(1, 0.3 * inch))
+        return table
 
-    # ==========================================
-    # Image Section
-    # ==========================================
+    # =========================
+    # PAGE 1
+    # =========================
+    page1 = []
+
+    page1.append(header())
+    page1.append(Spacer(1, 0.1*inch))
+    page1.append(HRFlowable(width="100%", thickness=1))
+
+    # Patient Info
+    page1.append(Spacer(1, 0.15*inch))
+    page1.append(Paragraph("Patient Information", section_style))
+
+    patient_data = [
+        ["Patient ID", patient_id],
+        ["Skeletal Class", skeletal_class],
+        ["Maxilla", maxilla_status or "N/A"],
+        ["Mandible", mandible_status or "N/A"],
+        ["Divergence", divergence_status or "N/A"],
+    ]
+
+    t = Table(patient_data, colWidths=[2.5*inch, 3*inch])
+    t.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.3, colors.grey),
+        ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
+        ("BACKGROUND", (0,0), (-1,-1), soft_bg),
+        ("BOX", (0,0), (-1,-1), 1, colors.HexColor("#cbd5e1")),
+    ]))
+    page1.append(t)
+
+    # Angles
+    if angles:
+        page1.append(Spacer(1, 0.15*inch))
+        page1.append(Paragraph("Cephalometric Angles", section_style))
+
+        data = [["Angle", "Value (°)"]]
+        for k, v in angles.items():
+            data.append([k, f"{round(v,2)}"])
+
+        t2 = Table(data, colWidths=[3*inch, 2*inch])
+        t2.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,0), primary_color),
+            ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+            ("GRID", (0,0), (-1,-1), 0.3, colors.grey),
+            ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.whitesmoke, colors.lightgrey]),
+            ("ALIGN", (1,1), (-1,-1), "CENTER"),
+        ]))
+        page1.append(t2)
+
+    # Airway
+    if airway:
+        page1.append(Spacer(1, 0.15*inch))
+        page1.append(Paragraph("Airway Analysis", section_style))
+
+        airway_data = [
+            ["Upper Airway", f"{airway.get('upper_airway','N/A')} mm"],
+            ["Lower Airway", f"{airway.get('lower_airway_width','N/A')} mm"],
+            ["Area", f"{airway.get('airway_area','N/A')} sq.mm"],
+        ]
+
+        t3 = Table(airway_data, colWidths=[3*inch, 2*inch])
+        t3.setStyle(TableStyle([
+            ("GRID", (0,0), (-1,-1), 0.3, colors.grey),
+            ("BACKGROUND", (0,0), (-1,-1), soft_bg),
+        ]))
+        page1.append(t3)
+
+        if airway_class:
+            page1.append(Paragraph(
+                f"Airway Classification: <b>{airway_class}</b>",
+                highlight_style
+            ))
+
+    # Interpretation
+    page1.append(Spacer(1, 0.2*inch))
+    page1.append(Paragraph("Clinical Interpretation", section_style))
+
+    short_text = f"""
+    Patient shows <b>{skeletal_class}</b> pattern.
+    Maxilla: <b>{maxilla_status or 'N/A'}</b>,
+    Mandible: <b>{mandible_status or 'N/A'}</b>.
+    Growth: <b>{divergence_status or 'N/A'}</b>.
+    Airway: <b>{airway_class or 'Normal'}</b>.
+    """
+
+    interpret_box = Table([[Paragraph(short_text, normal_style)]], colWidths=[5.5*inch])
+    interpret_box.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), highlight_bg),
+        ("BOX", (0,0), (-1,-1), 1, colors.green),
+        ("LEFTPADDING", (0,0), (-1,-1), 8),
+    ]))
+    page1.append(interpret_box)
+
+    elements.append(KeepTogether(page1))
+
+    # =========================
+    # PAGE 2
+    # =========================
+    elements.append(PageBreak())
+
+    elements.append(header())
+    elements.append(Spacer(1, 0.1*inch))
+    elements.append(HRFlowable(width="100%", thickness=1))
+
+    elements.append(Spacer(1, 0.2*inch))
+    elements.append(Paragraph("Cephalometric Radiograph", section_style))
+
     if image_path and os.path.exists(image_path):
-        elements.append(Paragraph("<b>Annotated Cephalogram</b>", styles["Heading2"]))
-        elements.append(Spacer(1, 0.2 * inch))
-
         img = Image(image_path)
-        img.drawHeight = 4 * inch
-        img.drawWidth = 4 * inch
+        img.drawHeight = 5.0 * inch
+        img.drawWidth = 5.0 * inch
 
-        elements.append(img)
+        img_frame = Table([[img]])
+        img_frame.setStyle(TableStyle([
+            ("BOX", (0,0), (-1,-1), 1, colors.grey)
+        ]))
 
-    # ==========================================
-    # Footer Note
-    # ==========================================
-    elements.append(Spacer(1, 0.5 * inch))
+        elements.append(img_frame)
+
+    elements.append(Spacer(1, 0.2*inch))
     elements.append(Paragraph(
-        "This report is generated automatically using CephAI system.",
-        normal_style
+        "Figure: Annotated cephalometric landmarks.",
+        subtitle_style
     ))
 
-    # Build PDF
+    elements.append(Spacer(1, 0.3*inch))
+    elements.append(Paragraph("Doctor Notes", section_style))
+
+    notes_box = Table([[
+        Paragraph(
+            "This AI-generated report supports orthodontic diagnosis. "
+            "Final clinical decisions must be made by a licensed orthodontist.",
+            normal_style
+        )
+    ]], colWidths=[5.5*inch])
+
+    notes_box.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), note_bg),
+        ("BOX", (0,0), (-1,-1), 1, colors.orange),
+    ]))
+
+    elements.append(notes_box)
+
+    elements.append(Spacer(1, 0.4*inch))
+    elements.append(Paragraph("Signature: ____________________", normal_style))
+    elements.append(Paragraph("Date: ____________________", normal_style))
+
+    # =========================
+    # BUILD
+    # =========================
     doc.build(elements)
