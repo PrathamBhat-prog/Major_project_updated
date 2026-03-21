@@ -10,9 +10,12 @@ import LoginPage from "./components/auth/LoginPage";
 
 // Admin
 import AdminDashboard from "./components/admin/AdminDashboard";
-import CreateDoctor from "./components/admin/CreateDoctor";
 import ManageDoctors from "./components/admin/ManageDoctors";
-
+import AdminLayout from "./components/admin/AdminLayout";
+import Analytics from "./components/admin/Analytics";
+import PatientsPage from "./components/admin/PatientsPage";
+import PredictionsPage from "./components/admin/PredictionsPage";
+import ChatPage from "./components/admin/ChatPage";
 // Doctor
 import DoctorDashboard from "./components/doctor/DoctorDashboard";
 import CreatePatient from "./components/doctor/CreatePatient";
@@ -24,23 +27,34 @@ import ClassificationView from "./components/doctor/ClassificationView";
 // General
 import CephalometricModel from "./components/CephalometricModel";
 import Lm from "./components/Learnmore";
-
 import { AuthContext } from "./context/AuthContext";
 import "./index.css";
 
 export default function App() {
-  const { currentUser } = useContext(AuthContext);
-
+ 
+  
+const { currentUser, loading } = useContext(AuthContext);
+if (loading) {
+  return (
+    <div className="h-screen flex items-center justify-center text-lg">
+      Loading Application...
+    </div>
+  );
+}console.log(currentUser)
   // ==============================
   // PROTECTED ROUTE COMPONENT
-  // ==============================
-  const ProtectedRoute = ({ role, children }) => {
-    if (!currentUser) return <Navigate to="/login" />;
-    if (role && currentUser.role !== role)
-      return <Navigate to="/" />;
-    return children;
-  };
+ const ProtectedRoute = ({ role, children }) => {
 
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role && currentUser.role !== role) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
   return (
     <BrowserRouter>
       <Header />
@@ -52,33 +66,71 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/lm" element={<Lm />} />
 
-        {/* ================= ADMIN ================= */}
         <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute role="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+  path="/admin/dashboard"
+  element={
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <AdminDashboard />
+      </AdminLayout>
+    </ProtectedRoute>
+  }
+/>
+        
 
         <Route
-          path="/admin/create-doctor"
-          element={
-            <ProtectedRoute role="admin">
-              <CreateDoctor />
-            </ProtectedRoute>
-          }
-        />
-
+  path="/admin/manage-doctors"
+  element={
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <ManageDoctors />
+      </AdminLayout>
+    </ProtectedRoute>
+  }
+/>
         <Route
-          path="/admin/manage-doctors"
-          element={
-            <ProtectedRoute role="admin">
-              <ManageDoctors />
-            </ProtectedRoute>
-          }
-        />
+  path="/admin/analytics"
+  element={
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <Analytics />
+      </AdminLayout>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/patients"
+  element={
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <PatientsPage />
+      </AdminLayout>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/predictions"
+  element={
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <PredictionsPage />
+      </AdminLayout>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/chat"
+  element={
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <ChatPage />
+      </AdminLayout>
+    </ProtectedRoute>
+  }
+/>
 
         {/* ================= DOCTOR ================= */}
         <Route

@@ -23,14 +23,40 @@ function safeDecode(token) {
 // -----------------------------
 export const AuthProvider = ({ children }) => {
 
-  // 🔹 Load token from localStorage
+  // 🔥 START AS undefined (IMPORTANT FIX)
   const [token, setToken] = useState(() => localStorage.getItem("ceph_token"));
-  const [currentUser, setCurrentUser] = useState(() =>
-    token ? safeDecode(token) : null
-  );
+  const [currentUser, setCurrentUser] = useState(undefined);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // 🔥 start true
   const [error, setError] = useState(null);
+
+  // ======================================================
+  // INITIAL LOAD (CRITICAL FIX)
+  // ======================================================
+  useEffect(() => {
+    const storedToken = localStorage.getItem("ceph_token");
+
+    if (!storedToken) {
+      setCurrentUser(null);
+      setToken(null);
+      setLoading(false);
+      return;
+    }
+
+    const decoded = safeDecode(storedToken);
+
+    if (!decoded) {
+      localStorage.removeItem("ceph_token");
+      setCurrentUser(null);
+      setToken(null);
+      setLoading(false);
+      return;
+    }
+
+    setToken(storedToken);
+    setCurrentUser(decoded);
+    setLoading(false);
+  }, []);
 
   // ======================================================
   // LOGIN
@@ -61,12 +87,12 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("ceph_token", data.access_token);
       setToken(data.access_token);
 
-      // 🔥 Decode once
       const decoded = safeDecode(data.access_token);
       setCurrentUser(decoded);
 
       setLoading(false);
       return true;
+
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -93,9 +119,9 @@ export const AuthProvider = ({ children }) => {
         throw new Error(err.detail || "Registration failed");
       }
 
-      // Auto-login after registration
       const ok = await login(username, password);
       return ok;
+
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -120,19 +146,6 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   // ======================================================
-  // Update currentUser when token changes
-  // ======================================================
-  useEffect(() => {
-    if (!token) {
-      setCurrentUser(null);
-      return;
-    }
-
-    const decoded = safeDecode(token);
-    setCurrentUser(decoded);
-  }, [token]);
-
-  // ======================================================
   // AUTO LOGOUT (Safe Version)
   // ======================================================
   useEffect(() => {
@@ -154,7 +167,7 @@ export const AuthProvider = ({ children }) => {
   }, [currentUser, logout]);
 
   // ======================================================
-  // DEBUG (REMOVE AFTER TESTING)
+  // DEBUG
   // ======================================================
   useEffect(() => {
     console.log("CURRENT USER:", currentUser);
