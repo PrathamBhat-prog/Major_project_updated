@@ -328,3 +328,168 @@ def doctor_predictions(
     )
 
     return predictions
+# ==================================================
+# PATIENT FULL HISTORY (QR USE)
+# ==================================================
+@app.get("/patients/{patient_id}/full-history")
+def get_patient_full_history(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    # Get patient
+    patient = db.query(models.Patient).filter(
+        models.Patient.id == patient_id,
+        models.Patient.owner_id == user.id
+    ).first()
+
+    if not patient:
+        raise HTTPException(404, "Patient not found")
+
+    # Get all predictions for that patient
+    predictions = db.query(models.Prediction).filter(
+        models.Prediction.patient_id == patient_id
+    ).order_by(models.Prediction.created_at.desc()).all()
+
+    return {
+        "patient": patient,
+        "predictions": predictions
+    }
+
+# ==============================
+# ADMIN - GET ALL PATIENTS
+# ==============================
+@app.get("/admin/patients")
+def admin_get_all_patients(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+
+    return db.query(models.Patient).all()
+
+# ==============================
+# ADMIN - GET ALL PREDICTIONS
+# ==============================
+@app.get("/admin/predictions")
+def admin_get_all_predictions(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+
+    return db.query(models.Prediction).all()
+@app.get("/admin/users")
+def get_all_users(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+
+    users = db.query(models.User).all()
+
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role,
+            "is_active": u.is_active
+        }
+        for u in users
+    ]
+@app.get("/admin/master-excel-data")
+def get_excel_data():
+    import pandas as pd
+    import numpy as np
+
+    df = pd.read_excel("local_storage/master_sheet.xlsx")
+
+    # 🔥 Convert everything to pure Python types
+    df = df.astype(object)
+
+    # 🔥 Replace invalid values
+    df = df.replace([np.nan, np.inf, -np.inf], None)
+
+    # 🔥 Convert safely
+    data = df.to_dict(orient="records")
+
+    return data
+@app.put("/admin/toggle-user/{user_id}")
+def toggle_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(utils.get_current_user)
+):
+    # ✅ Only admin allowed
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # ✅ Find user
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # ✅ Toggle active/inactive
+    user.is_active = not user.is_active
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "is_active": user.is_active
+    }
+@app.get("/admin/doctors")
+def get_all_doctors(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(utils.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+
+    doctors = db.query(models.User).filter(models.User.role == "doctor").all()
+
+    result = []
+
+    for d in doctors:
+        patient_count = db.query(models.Patient).filter(
+            models.Patient.owner_id == d.id
+        ).count()
+
+        result.append({
+            "id": d.id,                     # ✅ IMPORTANT (use this in frontend)
+            "username": d.username,         # display like DOC001
+            "email": d.email,
+            "is_active": d.is_active,
+            "patient_count": patient_count
+        })
+
+    return result
+@app.get("/admin/doctor/{doctor_id}/patients")
+def get_doctor_patients(
+    doctor_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(utils.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+
+    patients = db.query(models.Patient).filter(
+        models.Patient.owner_id == doctor_id
+    ).all()
+
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "age": p.dob,   # you used dob instead of age
+            "created_at": p.created_at
+        }
+        for p in patients
+    ]

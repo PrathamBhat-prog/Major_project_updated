@@ -1,4 +1,7 @@
 import os
+import qrcode
+import io
+
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Image,
     Table, TableStyle, PageBreak, HRFlowable, KeepTogether
@@ -233,13 +236,11 @@ def generate_ceph_report(
     elements.append(Spacer(1, 0.3*inch))
     elements.append(Paragraph("Doctor Notes", section_style))
 
-    notes_box = Table([[
-        Paragraph(
-            "This AI-generated report supports orthodontic diagnosis. "
-            "Final clinical decisions must be made by a licensed orthodontist.",
-            normal_style
-        )
-    ]], colWidths=[5.5*inch])
+    notes_box = Table([[Paragraph(
+        "This AI-generated report supports orthodontic diagnosis. "
+        "Final clinical decisions must be made by a licensed orthodontist.",
+        normal_style
+    )]], colWidths=[5.5*inch])
 
     notes_box.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,-1), note_bg),
@@ -247,6 +248,43 @@ def generate_ceph_report(
     ]))
 
     elements.append(notes_box)
+    elements.append(PageBreak())
+
+    elements.append(header())
+    # =========================
+    # QR CODE ADDED (NO CHANGE TO EXISTING LOGIC)
+    # =========================
+    try:
+        qr_data = f"http://localhost:3000/patient-history/{patient_id}"
+
+        qr = qrcode.make(qr_data)
+
+        qr_buffer = io.BytesIO()
+        qr.save(qr_buffer, format="PNG")
+        qr_buffer.seek(0)
+
+        qr_img = Image(qr_buffer)
+        qr_img.drawHeight = 1.5 * inch
+        qr_img.drawWidth = 1.5 * inch
+
+        qr_table = Table([
+            [qr_img, Paragraph(
+                f"Scan to view full patient history<br/>{qr_data}",
+                subtitle_style
+            )]
+        ], colWidths=[1.7*inch, 3.8*inch])
+
+        qr_table.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("BOX", (0,0), (-1,-1), 1, colors.grey),
+            ("BACKGROUND", (0,0), (-1,-1), colors.whitesmoke),
+        ]))
+
+        elements.append(Spacer(1, 0.3*inch))
+        elements.append(qr_table)
+
+    except Exception as e:
+        print("QR generation failed:", e)
 
     elements.append(Spacer(1, 0.4*inch))
     elements.append(Paragraph("Signature: ____________________", normal_style))

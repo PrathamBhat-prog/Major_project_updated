@@ -22,7 +22,7 @@ class User(Base):
     role = Column(String, default="doctor")
 
     created_at = Column(DateTime, default=datetime.utcnow)
-
+    is_active = Column(Boolean, default=True)
     # relationships
     patients = relationship(
         "Patient",
