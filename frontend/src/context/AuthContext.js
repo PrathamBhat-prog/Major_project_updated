@@ -1,4 +1,5 @@
 // src/context/AuthContext.js
+
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import jwtDecode from "jwt-decode";
 
@@ -23,40 +24,69 @@ function safeDecode(token) {
 // -----------------------------
 export const AuthProvider = ({ children }) => {
 
-  // 🔥 START AS undefined (IMPORTANT FIX)
   const [token, setToken] = useState(() => localStorage.getItem("ceph_token"));
   const [currentUser, setCurrentUser] = useState(undefined);
 
-  const [loading, setLoading] = useState(true); // 🔥 start true
+  // 🔥 NEW PROFILE STATE
+  const [profile, setProfile] = useState(null);
+
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // ======================================================
-  // INITIAL LOAD (CRITICAL FIX)
+  // 🔥 FETCH PROFILE
+  // ======================================================
+  const fetchProfile = useCallback(async (authToken) => {
+    try {
+      const res = await fetch(`${API_URL}/user/profile`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setProfile(data);
+
+    } catch (err) {
+      console.error("Profile fetch failed", err);
+    }
+  }, []);
+
+  // ======================================================
+  // INITIAL LOAD
   // ======================================================
   useEffect(() => {
-    const storedToken = localStorage.getItem("ceph_token");
+    const init = async () => {
+      const storedToken = localStorage.getItem("ceph_token");
 
-    if (!storedToken) {
-      setCurrentUser(null);
-      setToken(null);
+      if (!storedToken) {
+        setCurrentUser(null);
+        setToken(null);
+        setLoading(false);
+        return;
+      }
+
+      const decoded = safeDecode(storedToken);
+
+      if (!decoded) {
+        localStorage.removeItem("ceph_token");
+        setCurrentUser(null);
+        setToken(null);
+        setLoading(false);
+        return;
+      }
+
+      setToken(storedToken);
+      setCurrentUser(decoded);
+
+      // 🔥 FETCH PROFILE HERE
+      await fetchProfile(storedToken);
+
       setLoading(false);
-      return;
-    }
+    };
 
-    const decoded = safeDecode(storedToken);
-
-    if (!decoded) {
-      localStorage.removeItem("ceph_token");
-      setCurrentUser(null);
-      setToken(null);
-      setLoading(false);
-      return;
-    }
-
-    setToken(storedToken);
-    setCurrentUser(decoded);
-    setLoading(false);
-  }, []);
+    init();
+  }, [fetchProfile]);
 
   // ======================================================
   // LOGIN
@@ -83,12 +113,15 @@ export const AuthProvider = ({ children }) => {
 
       const data = await res.json();
 
-      // 🔥 Save token
+      // 🔥 SAVE TOKEN
       localStorage.setItem("ceph_token", data.access_token);
       setToken(data.access_token);
 
       const decoded = safeDecode(data.access_token);
       setCurrentUser(decoded);
+
+      // 🔥 FETCH PROFILE AFTER LOGIN
+      await fetchProfile(data.access_token);
 
       setLoading(false);
       return true;
@@ -98,7 +131,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return false;
     }
-  }, []);
+  }, [fetchProfile]);
 
   // ======================================================
   // REGISTER
@@ -136,6 +169,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("ceph_token");
     setToken(null);
     setCurrentUser(null);
+    setProfile(null);
   }, []);
 
   // ======================================================
@@ -146,7 +180,7 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   // ======================================================
-  // AUTO LOGOUT (Safe Version)
+  // AUTO LOGOUT
   // ======================================================
   useEffect(() => {
     if (!currentUser?.exp) return;
@@ -170,13 +204,15 @@ export const AuthProvider = ({ children }) => {
   // DEBUG
   // ======================================================
   useEffect(() => {
-    console.log("CURRENT USER:", currentUser);
-  }, [currentUser]);
+    console.log("USER:", currentUser);
+    console.log("PROFILE:", profile);
+  }, [currentUser, profile]);
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
+        profile, // 🔥 IMPORTANT
         token,
         loading,
         error,

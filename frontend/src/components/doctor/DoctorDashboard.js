@@ -9,7 +9,8 @@ export default function DoctorDashboard() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL;
-
+  const [profile, setProfile] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
   const [patients, setPatients] = useState([]);
   const [predictions, setPredictions] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -44,9 +45,22 @@ export default function DoctorDashboard() {
   useEffect(() => {
     if (token) {
       fetchDashboardData();
+      fetchProfile();
     }
   }, [token]);
+  const fetchProfile = async () => {
+  try {
+    const res = await fetch(`${API_URL}/user/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
+    const data = await res.json();
+    setProfile(data);
+
+  } catch (err) {
+    console.error("Profile fetch error", err);
+  }
+};
   // =====================================================
   // FETCH DATA
   // =====================================================
@@ -212,6 +226,55 @@ export default function DoctorDashboard() {
 
       {/* ================= SIDEBAR ================= */}
       <div className="w-80 bg-white/80 backdrop-blur-lg shadow-xl p-6 flex flex-col border-r">
+      {/* ================= PROFILE ================= */}
+{profile && (
+  <div className="mb-6 relative">
+
+    <div
+      onClick={() => setShowMenu(!showMenu)}
+      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer border"
+    >
+      {/* AVATAR */}
+      <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-semibold">
+        {profile.full_name?.[0] || profile.username?.[0]}
+      </div>
+
+      {/* INFO */}
+      <div className="flex-1 overflow-hidden">
+        <p className="font-semibold text-sm truncate">
+          {profile.full_name || profile.username}
+        </p>
+        <p className="text-xs text-gray-400 truncate">
+          {profile.email}
+        </p>
+      </div>
+    </div>
+
+    {/* DROPDOWN */}
+    {showMenu && (
+      <div className="absolute left-0 top-full mt-2 w-full bg-white shadow-lg rounded-xl border z-50">
+
+        <button
+          onClick={() => navigate("/doctor/profile")}
+          className="w-full text-left px-4 py-3 hover:bg-gray-100 text-sm"
+        >
+          ✏️ Edit Profile
+        </button>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+          }}
+          className="w-full text-left px-4 py-3 hover:bg-gray-100 text-sm text-red-600"
+        >
+          🚪 Logout
+        </button>
+
+      </div>
+    )}
+  </div>
+)}
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-indigo-700">

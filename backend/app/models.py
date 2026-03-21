@@ -22,7 +22,16 @@ class User(Base):
     role = Column(String, default="doctor")
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 🔥 ACTIVE / INACTIVE
     is_active = Column(Boolean, default=True)
+
+    # 🔥 NEW PROFILE FIELDS
+    full_name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    profile_image = Column(String, nullable=True)
+    is_profile_complete = Column(Boolean, default=False)
+
     # relationships
     patients = relationship(
         "Patient",
@@ -52,9 +61,7 @@ class Patient(Base):
 
     # delete verification fields
     delete_code = Column(String, nullable=True)
-
     delete_code_expiry = Column(DateTime, nullable=True)
-
     delete_requested = Column(Boolean, default=False)
 
     # relationships
@@ -70,9 +77,6 @@ class Patient(Base):
     )
 
 
-# =========================================================
-# 🧠 PREDICTION TABLE
-# =========================================================
 # =========================================================
 # 🧠 PREDICTION TABLE
 # =========================================================
@@ -108,8 +112,7 @@ class Prediction(Base):
 
     # Airway measurements
     airway = Column(JSON)
-
-    airway_class = Column(String, nullable=True)   # ✅ ADD THIS
+    airway_class = Column(String, nullable=True)
 
     # File paths
     image_path = Column(String)

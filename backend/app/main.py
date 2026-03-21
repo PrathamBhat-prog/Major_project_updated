@@ -367,7 +367,31 @@ def admin_get_all_patients(
     if user.role != "admin":
         raise HTTPException(403, "Not authorized")
 
-    return db.query(models.Patient).all()
+    patients = db.query(models.Patient).all()
+
+    result = []
+
+    for p in patients:
+        predictions = db.query(models.Prediction).filter(
+            models.Prediction.patient_id == p.id
+        ).order_by(models.Prediction.created_at.desc()).all()
+
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "created_at": p.created_at,
+            "owner_id": p.owner_id,
+            "predictions": [
+                {
+                    "id": pr.id,
+                    "skeletal_class": pr.skeletal_class,
+                    "created_at": pr.created_at
+                }
+                for pr in predictions
+            ]
+        })
+
+    return result
 
 # ==============================
 # ADMIN - GET ALL PREDICTIONS
@@ -380,7 +404,50 @@ def admin_get_all_predictions(
     if user.role != "admin":
         raise HTTPException(403, "Not authorized")
 
-    return db.query(models.Prediction).all()
+    preds = db.query(models.Prediction).all()
+
+    result = []
+
+    for p in preds:
+        # ================= PATIENT =================
+        patient = db.query(models.Patient).filter(
+            models.Patient.id == p.patient_id
+        ).first()
+
+        patient_name = patient.name if patient else "Unknown"
+
+        # ================= DOCTOR =================
+        doctor_name = "Unknown"
+
+        if patient and patient.owner_id:
+            doctor = db.query(models.User).filter(
+                models.User.id == patient.owner_id
+            ).first()
+
+            if doctor:
+                doctor_name = doctor.full_name or doctor.username
+
+        result.append({
+            "id": p.id,
+            "patient_id": p.patient_id,
+            "patient_name": patient_name,
+            "model_name": p.model_name,
+            "created_at": p.created_at,
+            "skeletal_class": p.skeletal_class,
+            "angles": p.angles,
+            "maxilla_status": p.maxilla_status,
+            "mandible_status": p.mandible_status,
+            "divergence_status": p.divergence_status,
+            "airway": p.airway,
+            "airway_class": p.airway_class,
+
+            "doctor_name": doctor_name,
+
+            "image_path": p.image_path,
+            "pdf_path": p.pdf_path
+        })
+
+    return result
 @app.get("/admin/users")
 def get_all_users(
     db: Session = Depends(get_db),
@@ -463,12 +530,14 @@ def get_all_doctors(
         ).count()
 
         result.append({
-            "id": d.id,                     # ✅ IMPORTANT (use this in frontend)
-            "username": d.username,         # display like DOC001
-            "email": d.email,
-            "is_active": d.is_active,
-            "patient_count": patient_count
-        })
+    "id": d.id,
+    "username": d.username,
+    "email": d.email if d.email else d.username,  # ✅ FIX
+    "phone": d.phone,
+    "full_name": d.full_name,
+    "is_active": d.is_active,
+    "patient_count": patient_count
+})
 
     return result
 @app.get("/admin/doctor/{doctor_id}/patients")
@@ -492,4 +561,48 @@ def get_doctor_patients(
             "created_at": p.created_at
         }
         for p in patients
+    ]
+@app.get("/user/profile")
+def get_profile(user: models.User = Depends(utils.get_current_user)):
+    return {
+        "username": user.username,
+        "full_name": getattr(user, "full_name", None),
+        "phone": getattr(user, "phone", None),
+        "role": user.role,
+        "is_profile_complete": getattr(user, "is_profile_complete", False)
+    }
+
+@app.put("/user/profile")
+def update_profile(
+    full_name: str = Form(...),
+    phone: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(utils.get_current_user)
+):
+    # ✅ Fetch user again in THIS session
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # ✅ Update fields
+    user.full_name = full_name
+    user.phone = phone
+    user.is_profile_complete = True
+
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Profile updated"}
+@app.get("/admin/predictions/debug")
+def admin_predictions_debug(db: Session = Depends(get_db)):
+    preds = db.query(models.Prediction).all()
+
+    return [
+        {
+            "id": p.id,
+            "pdf_path": p.pdf_path,
+            "image_path": p.image_path
+        }
+        for p in preds
     ]

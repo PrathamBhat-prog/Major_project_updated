@@ -4,11 +4,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ==================================================
+# CONFIG
+# ==================================================
 STORAGE_MODE = os.getenv("STORAGE_MODE", "local")
+
+# Remove trailing slash if present
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000").rstrip("/")
 
 LOCAL_STORAGE_DIR = "local_storage"
 
 
+# ==================================================
+# MAIN UPLOAD FUNCTION
+# ==================================================
 def upload_bytes(
     file_bytes: bytes,
     folder: str,
@@ -17,23 +26,16 @@ def upload_bytes(
     original_name: str = None
 ):
     """
-    Saves file bytes locally (or cloud in future).
-
-    Args:
-        file_bytes (bytes): File content
-        folder (str): Subfolder name (images, excels, reports)
-        ext (str): File extension (jpg, pdf, xlsx)
-        content_type (str): Optional (for cloud use)
-        original_name (str): Original filename (optional)
+    Save file locally (or cloud in future)
 
     Returns:
-        str: File URL/path
+        Full accessible URL
     """
 
     if STORAGE_MODE == "local":
         return _save_local(file_bytes, folder, ext, original_name)
 
-    # Placeholder for future cloud integration
+    # Future support
     # elif STORAGE_MODE == "s3":
     #     return _upload_to_s3(...)
     # elif STORAGE_MODE == "gcp":
@@ -46,7 +48,7 @@ def upload_bytes(
 # LOCAL STORAGE
 # ==================================================
 def _save_local(file_bytes, folder, ext, original_name):
-    # Create folder path
+    # Create directory
     save_dir = os.path.join(LOCAL_STORAGE_DIR, folder)
     os.makedirs(save_dir, exist_ok=True)
 
@@ -55,6 +57,7 @@ def _save_local(file_bytes, folder, ext, original_name):
 
     if original_name:
         base_name = os.path.splitext(original_name)[0]
+        base_name = base_name.replace(" ", "_")  # clean spaces
         filename = f"{base_name}_{unique_id}.{ext}"
     else:
         filename = f"{unique_id}.{ext}"
@@ -65,5 +68,5 @@ def _save_local(file_bytes, folder, ext, original_name):
     with open(file_path, "wb") as f:
         f.write(file_bytes)
 
-    # Return URL path (for frontend access)
-    return f"/local_storage/{folder}/{filename}"
+    # Build URL (IMPORTANT)
+    return f"{BASE_URL}/local_storage/{folder}/{filename}"

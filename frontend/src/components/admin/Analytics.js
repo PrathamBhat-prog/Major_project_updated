@@ -1,10 +1,15 @@
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import {
-  PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts";
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
+const COLORS = ["#6366f1","#22c55e","#f59e0b","#ef4444"];
 
 export default function Analytics() {
   const { getAuthHeaders } = useContext(AuthContext);
@@ -12,27 +17,36 @@ export default function Analytics() {
   const [tab, setTab] = useState("db");
   const [dbData, setDbData] = useState([]);
   const [excelData, setExcelData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const headers = getAuthHeaders();
+      try {
+        const headers = getAuthHeaders();
 
-      const [predRes, excelRes] = await Promise.all([
-        fetch(`${API_URL}/admin/predictions`, { headers }),
-        fetch(`${API_URL}/admin/master-excel-data`, { headers })
-      ]);
+        const [predRes, excelRes] = await Promise.all([
+          fetch(`${API_URL}/admin/predictions`, { headers }),
+          fetch(`${API_URL}/admin/master-excel-data`, { headers })
+        ]);
 
-      const preds = await predRes.json();
-      const excel = await excelRes.json();
-
-      setDbData(preds);
-      setExcelData(excel);
+        setDbData(await predRes.json());
+        setExcelData(await excelRes.json());
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
   }, []);
 
-  const data = tab === "db" ? dbData : excelData;
+  const rawData = tab === "db" ? dbData : excelData;
+
+  const data = filter
+    ? rawData.filter(d => d.skeletal_class === filter)
+    : rawData;
 
   // ================= HELPERS =================
 
@@ -45,7 +59,6 @@ export default function Analytics() {
     return Object.keys(map).map(k => ({ name: k, value: map[k] }));
   };
 
-  // ✅ FIXED GROWTH
   const getGrowth = (d) => {
     if (d.divergence_status) {
       const val = d.divergence_status.toLowerCase();
@@ -53,7 +66,6 @@ export default function Analytics() {
       if (val.includes("hyper")) return "Hyperdivergent";
       return "Normodivergent";
     }
-
     const v = d.SN_GoGn || d.FMA;
     if (!v) return "Unknown";
     if (v < 28) return "Hypodivergent";
@@ -61,189 +73,286 @@ export default function Analytics() {
     return "Hyperdivergent";
   };
 
-  // ✅ FIXED AIRWAY
-  const getAirwayClass = (d) => {
-    if (d.airway && d.airway.upper_airway !== undefined) {
-      const val = d.airway.upper_airway;
-      if (val < 10) return "Severe";
-      if (val < 15) return "Moderate";
-      return "Normal";
-    }
+  // ✅ FINAL FIXED MATRIX
+ const getMatrix = (metric) => {
+  const classes = ["Class I", "Class II", "Class III"];
+  const growths = ["Normodivergent", "Hypodivergent", "Hyperdivergent"];
+  const result = {};
 
-    const area = d.airway_area;
-    if (!area) return "Unknown";
-    if (area < 100) return "Severe";
-    if (area < 200) return "Moderate";
-    return "Normal";
-  };
+  classes.forEach(cls => {
+    result[cls] = {};
 
-  // ✅ FINAL MATRIX FIX
-  const getMatrix = (metric) => {
-    const classes = ["Class I", "Class II", "Class III"];
-    const growths = ["Normodivergent", "Hypodivergent", "Hyperdivergent"];
+    growths.forEach(g => {
+      const filtered = data.filter(d =>
+        (d.skeletal_class || "").toLowerCase() === cls.toLowerCase() &&
+        getGrowth(d).toLowerCase() === g.toLowerCase()
+      );
 
-    const result = {};
+      const values = filtered
+        .map(d => {
+          let val = null;
 
-    classes.forEach(cls => {
-      result[cls] = {};
-      growths.forEach(g => {
-        const filtered = data.filter(d => {
-          const clsMatch =
-            (d.skeletal_class || "").toLowerCase().trim() === cls.toLowerCase();
+          if (d?.angles && d.angles[metric] !== undefined) {
+            val = d.angles[metric];
+          } else if (d[metric] !== undefined) {
+            val = d[metric];
+          }
 
-          const growthMatch =
-            (getGrowth(d) || "").toLowerCase().trim() === g.toLowerCase();
+          return val !== null ? parseFloat(val) : null;
+        })
+        .filter(v => v !== null && !isNaN(v));
 
-          return clsMatch && growthMatch;
-        });
+      const avg = values.length
+        ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
+        : "-";
 
-        const values = filtered
-          .map(d => {
-            if (d.angles && d.angles[metric] !== undefined) {
-              return d.angles[metric];
-            }
-            return d[metric];
-          })
-          .filter(v => typeof v === "number" && !isNaN(v));
-
-        const avg = values.length
-          ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
-          : "-";
-
-        result[cls][g] = avg;
-      });
+      result[cls][g] = avg;
     });
+  });
 
-    return result;
-  };
+  return result;
+};
 
-  const airwayData = countByKey(
-    data.map(d => ({ airway: getAirwayClass(d) })),
-    "airway"
+  const divergenceData = countByKey(
+    data.map(d => ({ divergence: getGrowth(d) })),
+    "divergence"
   );
 
   const classData = countByKey(data, "skeletal_class");
-  const maxillaData = countByKey(data, "maxilla_status");
-  const mandibleData = countByKey(data, "mandible_status");
 
-  const COLORS = ["#6366f1", "#22c55e", "#f59e0b"];
+  if (loading) return <Loading />;
 
   return (
-    <div className="p-6">
+    <motion.div
+      className="p-6 min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
 
-      <h1 className="text-2xl font-bold mb-6">Analytics Dashboard</h1>
+      <motion.h1
+        className="text-3xl font-bold mb-6"
+        whileHover={{ scale: 1.03 }}
+      >
+        Analytics Dashboard
+      </motion.h1>
 
-      {/* TABS */}
       <div className="flex gap-4 mb-6">
-        <button onClick={() => setTab("db")} className={`px-4 py-2 rounded ${tab==="db" ? "bg-blue-500 text-white" : "bg-gray-200"}`}>
-          Database
-        </button>
-
-        <button onClick={() => setTab("excel")} className={`px-4 py-2 rounded ${tab==="excel" ? "bg-green-500 text-white" : "bg-gray-200"}`}>
-          Master Excel
-        </button>
+        <TabBtn active={tab==="db"} onClick={() => setTab("db")} label="Database" />
+        <TabBtn active={tab==="excel"} onClick={() => setTab("excel")} label="Master Excel" />
       </div>
 
-      {/* STATS */}
+      <InsightCard data={data} />
+
+      {filter && (
+        <div className="mb-4 bg-white p-3 rounded shadow">
+          Showing: <b>{filter}</b>
+          <button onClick={()=>setFilter(null)} className="ml-3 text-blue-500">Clear</button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Patients" value={data.length} />
-        <StatCard title="Class II" value={data.filter(d => d.skeletal_class === "Class II").length} />
-        <StatCard title="Class III" value={data.filter(d => d.skeletal_class === "Class III").length} />
+        <StatCard title="Total" value={data.length} />
+        <StatCard title="Class II" value={data.filter(d=>d.skeletal_class==="Class II").length} />
+        <StatCard title="Class III" value={data.filter(d=>d.skeletal_class==="Class III").length} />
         <StatCard title="Avg Age" value={
           data.length
-            ? (data.reduce((s, d) => s + (d.age || 0), 0) / data.length).toFixed(1)
+            ? (data.reduce((s,d)=>s+(d.age||0),0)/data.length).toFixed(1)
             : 0
         } />
       </div>
 
-      {/* CHARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ChartCard title="Class Distribution">
+          <PieUI data={classData} onClick={setFilter} />
+        </ChartCard>
 
-        <Card title="Skeletal Class">
-          <PieChart width={300} height={250}>
-            <Pie data={classData} dataKey="value" outerRadius={80}>
-              {classData.map((_, i) => <Cell key={i} fill={COLORS[i%3]} />)}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </Card>
+        <ChartCard title="Divergence">
+          <PieUI data={divergenceData} />
+        </ChartCard>
 
-        <Card title="Airway Classification">
-          <PieChart width={300} height={250}>
-            <Pie data={airwayData} dataKey="value" outerRadius={80}>
-              {airwayData.map((_, i) => <Cell key={i} fill={COLORS[i%3]} />)}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </Card>
+        <ChartCard title="Class Comparison">
+          <BarUI data={classData} />
+        </ChartCard>
 
-        <Card title="Maxilla Status">
-          <PieChart width={300} height={250}>
-            <Pie data={maxillaData} dataKey="value" outerRadius={80}>
-              {maxillaData.map((_, i) => <Cell key={i} fill={COLORS[i%3]} />)}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </Card>
-
-        <Card title="Mandible Status">
-          <PieChart width={300} height={250}>
-            <Pie data={mandibleData} dataKey="value" outerRadius={80}>
-              {mandibleData.map((_, i) => <Cell key={i} fill={COLORS[i%3]} />)}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </Card>
-
+        <ChartCard title="Divergence Comparison">
+          <BarUI data={divergenceData} />
+        </ChartCard>
       </div>
 
-      {/* MATRIX */}
-      <Matrix title="YEN Analysis" matrix={getMatrix("YEN")} />
       <Matrix title="SNA Analysis" matrix={getMatrix("SNA")} />
       <Matrix title="SNB Analysis" matrix={getMatrix("SNB")} />
-      <Matrix title="Airway Area" matrix={getMatrix("upper_airway")} />
+      <Matrix title="YEN Analysis" matrix={getMatrix("YEN")} />
 
-    </div>
+    </motion.div>
   );
 }
 
-function Matrix({ title, matrix }) {
+/* COMPONENTS */
+
+function TabBtn({ active, onClick, label }) {
   return (
-    <div className="mt-8">
-      <h2 className="text-lg font-bold mb-4">{title}</h2>
-
-      {Object.keys(matrix).map(cls => (
-        <div key={cls} className="bg-white p-4 mb-4 rounded-xl shadow">
-          <h3 className="font-semibold mb-2">{cls}</h3>
-
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(matrix[cls]).map(([g, v]) => (
-              <div key={g} className="bg-gray-100 p-3 rounded text-center">
-                <p className="text-sm text-gray-500">{g}</p>
-                <p className="text-xl font-bold">{v}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+    <motion.button
+      onClick={onClick}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className={`px-5 py-2 rounded-xl ${
+        active
+          ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg"
+          : "bg-white shadow"
+      }`}
+    >
+      {label}
+    </motion.button>
   );
 }
 
 function StatCard({ title, value }) {
   return (
-    <div className="bg-white p-4 rounded-xl shadow">
-      <p className="text-gray-500 text-sm">{title}</p>
-      <h2 className="text-2xl font-bold">{value}</h2>
+    <motion.div
+      whileHover={{ scale: 1.07, y: -5 }}
+      className="bg-white p-5 rounded-xl text-center shadow-md hover:shadow-2xl"
+    >
+      <p className="text-gray-500">{title}</p>
+      <h2 className="text-3xl font-bold text-indigo-600">
+        <CountUp end={value} duration={1.2} />
+      </h2>
+    </motion.div>
+  );
+}
+
+function InsightCard({ data }) {
+  const total = data.length;
+  const c2 = data.filter(d=>d.skeletal_class==="Class II").length;
+  const percent = total?((c2/total)*100).toFixed(1):0;
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded-xl mb-6 shadow-lg"
+    >
+      {percent}% patients are Class II
+    </motion.div>
+  );
+}
+
+function ChartCard({ title, children }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className="bg-white p-4 rounded-xl shadow hover:shadow-xl"
+    >
+      <h2 className="mb-2 font-semibold">{title}</h2>
+      {children}
+    </motion.div>
+  );
+}
+
+function PieUI({ data, onClick }) {
+  const [active, setActive] = useState(null);
+
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          onClick={(e)=>onClick?.(e.name)}
+          onMouseEnter={(_, i)=>setActive(i)}
+          activeIndex={active}
+        >
+          {data.map((_,i)=>(
+            <Cell key={i} fill={COLORS[i%COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+function BarUI({ data }) {
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3"/>
+        <XAxis dataKey="name"/>
+        <YAxis/>
+        <Tooltip />
+        <Bar dataKey="value" animationDuration={800}>
+          {data.map((_,i)=>(
+            <Cell key={i} fill={COLORS[i%COLORS.length]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function Matrix({ title, matrix }) {
+  const [active, setActive] = useState(null);
+
+  return (
+    <div className="mt-16">
+      <h2 className="text-2xl font-semibold mb-6">{title}</h2>
+
+      {Object.keys(matrix).map((cls)=>{
+        const hasData = Object.values(matrix[cls]).some(v => v !== null);
+        if (!hasData) return null;
+
+        return (
+          <div key={cls} className="mb-10">
+            <h3 className="mb-4 font-semibold">{cls}</h3>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {Object.entries(matrix[cls]).map(([growth,val])=>{
+                const id = cls+growth;
+                const isActive = active===id;
+
+                return (
+                  <motion.div
+                    key={growth}
+                    onClick={()=>setActive(isActive?null:id)}
+                    whileHover={{ scale:1.05 }}
+                    className={`p-5 rounded-xl cursor-pointer ${
+                      isActive ? "ring-2 ring-indigo-500 shadow-xl" : "bg-white shadow"
+                    }`}
+                  >
+                    <p>{growth}</p>
+
+                    <h2 className="text-3xl font-bold mt-2">
+                      {val === null ? (
+                        <span className="text-gray-400 text-sm">No Data</span>
+                      ) : (
+                        <CountUp end={parseFloat(val)} duration={1} />
+                      )}
+                    </h2>
+
+                    {val !== null && (
+                      <div className="mt-3 h-2 bg-gray-200 rounded">
+                        <motion.div
+                          initial={{width:0}}
+                          animate={{width:`${val}%`}}
+                          className="h-full bg-indigo-500"
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function Card({ title, children }) {
+function Loading() {
   return (
-    <div className="bg-white rounded-xl shadow p-4">
-      <h2 className="font-semibold mb-3">{title}</h2>
-      {children}
+    <div className="p-10 animate-pulse">
+      <div className="h-6 bg-gray-300 mb-4 w-1/3"></div>
+      <div className="h-40 bg-gray-300"></div>
     </div>
   );
 }

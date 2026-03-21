@@ -39,7 +39,8 @@ export default function AdminDashboard() {
         const pData = await pRes.json();
         const prData = await prRes.json();
         const uData = await uRes.json();
-
+        console.log("USERS:", uData);
+        console.log("PATIENT:", pData[0]);
         setPatients(pData || []);
         setPredictions(prData || []);
         setUsers(uData || []);
@@ -60,30 +61,34 @@ export default function AdminDashboard() {
   const totalDoctors = users.filter(u => u.role === "doctor").length;
 
   // Map doctorId → name
-  const doctorMap = {};
-  users.forEach(u => {
-    if (u.role === "doctor") {
-      doctorMap[u.id] = u.username;
-    }
-  });
+  // Map doctorId → name
+// Map doctorId -> display name (robust)
+const doctorMap = {};
+users.forEach(u => {
+  if (u.role === "doctor") {
+    const id = String(u.id ?? u.user_id ?? u._id);       // handle different id fields
+    const name = u.username ?? u.name ?? u.email ?? `Doc ${id}`;
+    doctorMap[id] = name;
+  }
+});
+// Patients per doctor
+const doctorPatients = {};
+patients.forEach(p => {
+  const docId = String(p.owner_id ?? p.doctor_id ?? p.user_id);
+  if (!docId) return;
+  doctorPatients[docId] = (doctorPatients[docId] || 0) + 1;
+});
 
-  // Patients per doctor
-  const doctorPatients = {};
-  patients.forEach(p => {
-    const doc = p.owner_id;
-    doctorPatients[doc] = (doctorPatients[doc] || 0) + 1;
-  });
-
-  // Predictions per doctor
-  const doctorPredictions = {};
-  predictions.forEach(pred => {
-    const patient = patients.find(p => p.id === pred.patient_id);
-    if (patient) {
-      const doc = patient.owner_id;
-      doctorPredictions[doc] = (doctorPredictions[doc] || 0) + 1;
-    }
-  });
-
+// Predictions per doctor
+const doctorPredictions = {};
+predictions.forEach(pred => {
+  const patient = patients.find(p => String(p.id) === String(pred.patient_id));
+  if (patient) {
+    const docId = String(patient.owner_id ?? patient.doctor_id ?? patient.user_id);
+    if (!docId) return;
+    doctorPredictions[docId] = (doctorPredictions[docId] || 0) + 1;
+  }
+});
   // Chart data
   const doctorChartData = Object.keys(doctorPatients).map(docId => ({
     name: doctorMap[docId] || `Doc ${docId}`,
@@ -92,15 +97,19 @@ export default function AdminDashboard() {
 
   // ML vs Clinical
   const modeStats = [
-    {
-      name: "ML",
-      value: predictions.filter(p => p.mode_used === "ml").length
-    },
-    {
-      name: "Clinical",
-      value: predictions.filter(p => p.mode_used === "clinical").length
-    }
-  ];
+  {
+    name: "ML",
+    value: predictions.filter(p =>
+      /ml/i.test(p.model_name)
+    ).length
+  },
+  {
+    name: "Clinical",
+    value: predictions.filter(p =>
+      /clinical/i.test(p.model_name)
+    ).length
+  }
+];
 
   const COLORS = ["#6366f1", "#22c55e"];
 
@@ -111,7 +120,8 @@ export default function AdminDashboard() {
       </div>
     );
   }
-
+console.log("MODE STATS:", modeStats);
+console.log("PREDICTIONS:", predictions);
   return (
     <div className="p-6">
 
@@ -205,8 +215,8 @@ export default function AdminDashboard() {
             {Object.keys(doctorPatients).map(docId => (
               <tr key={docId} className="border-t hover:bg-gray-50">
                 <td className="p-3">
-                  {doctorMap[docId] || `Doc ${docId}`}
-                </td>
+  {doctorMap[docId] || "Unknown Doctor"}
+</td>
                 <td className="p-3 text-center">
                   {doctorPatients[docId]}
                 </td>
