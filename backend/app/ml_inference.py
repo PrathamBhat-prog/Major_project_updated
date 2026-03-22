@@ -509,6 +509,8 @@ def process_ml_finalize(image_bytes, ceph_id, landmarks):
     df["angle_ANB"] = angles.get("ANB", 0)
     df["angle_SN_GoGn"] = angles.get("SN_GoGn", 0)
     df["angle_YEN"] = angles.get("YEN", 0)
+    df["upper_airway"] = airway.get("upper_airway", 0)
+    df["airway_class"] = airway_class
     df.to_excel(excel_path, index=False)
 
     return {

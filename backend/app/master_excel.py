@@ -63,9 +63,8 @@ def append_to_master_excel(
     # Airway
     # ==========================================
     airway = result.get("airway", {})
-    row["upper_airway_width"] = airway.get("upper_airway_width")
-    row["lower_airway_width"] = airway.get("lower_airway_width")
-    row["airway_area"] = airway.get("airway_area")
+    row["upper_airway"] = airway.get("upper_airway")
+    row["airway_class"] = result.get("airway_class")
 
     # ==========================================
     # Core Landmarks
