@@ -68,9 +68,6 @@ public/
 *.scss
 *.sass
 *.less
-*.png
-*.jpg
-*.jpeg
 *.gif
 *.svg
 *.ico
