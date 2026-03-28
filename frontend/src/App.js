@@ -18,6 +18,7 @@ import PatientsPage from "./components/admin/PatientsPage";
 import PredictionsPage from "./components/admin/PredictionsPage";
 import ChatPage from "./components/admin/ChatPage";
 import Adminprofile from "./components/common/ProfilePage";
+import AdvancedAnalysis from "./components/admin/AdvancedAnalysis";
 
 // Doctor
 import DoctorDashboard from "./components/doctor/DoctorDashboard";
@@ -130,6 +131,17 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+         <Route
+          path="/admin/advancedanalytics"
+          element={
+            <ProtectedRoute role="admin">
+              <AdminLayout>
+                <AdvancedAnalysis />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
 
         <Route
           path="/admin/patients"

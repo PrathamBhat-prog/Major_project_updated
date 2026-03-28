@@ -13,7 +13,7 @@ const COLORS = ["#6366f1","#22c55e","#f59e0b","#ef4444"];
 
 export default function Analytics() {
   const { getAuthHeaders } = useContext(AuthContext);
-
+  
   const [tab, setTab] = useState("db");
   const [dbData, setDbData] = useState([]);
   const [excelData, setExcelData] = useState([]);
@@ -44,10 +44,6 @@ export default function Analytics() {
 
   const rawData = tab === "db" ? dbData : excelData;
 
-  const data = filter
-    ? rawData.filter(d => d.skeletal_class === filter)
-    : rawData;
-
   // ================= HELPERS =================
 
   const countByKey = (arr, key) => {
@@ -73,45 +69,87 @@ export default function Analytics() {
     return "Hyperdivergent";
   };
 
-  // ✅ FINAL FIXED MATRIX
- const getMatrix = (metric) => {
-  const classes = ["Class I", "Class II", "Class III"];
-  const growths = ["Normodivergent", "Hypodivergent", "Hyperdivergent"];
-  const result = {};
+  // 🔥 NEW HELPERS (ADDED ONLY)
+  const getMaxillary = (d) => {
+    const val = d?.angles?.SNA ?? d.SNA;
+    if (!val) return "Unknown";
+    if (val > 84) return "Prognathic";
+    if (val >= 80) return "Orthognathic";
+    return "Retrognathic";
+  };
 
-  classes.forEach(cls => {
-    result[cls] = {};
+  const getMandibular = (d) => {
+    const val = d?.angles?.SNB ?? d.SNB;
+    if (!val) return "Unknown";
+    if (val > 82) return "Prognathic";
+    if (val >= 78) return "Orthognathic";
+    return "Retrognathic";
+  };
 
-    growths.forEach(g => {
-      const filtered = data.filter(d =>
-        (d.skeletal_class || "").toLowerCase() === cls.toLowerCase() &&
-        getGrowth(d).toLowerCase() === g.toLowerCase()
-      );
-
-      const values = filtered
-        .map(d => {
-          let val = null;
-
-          if (d?.angles && d.angles[metric] !== undefined) {
-            val = d.angles[metric];
-          } else if (d[metric] !== undefined) {
-            val = d[metric];
-          }
-
-          return val !== null ? parseFloat(val) : null;
-        })
-        .filter(v => v !== null && !isNaN(v));
-
-      const avg = values.length
-        ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
-        : "-";
-
-      result[cls][g] = avg;
-    });
-  });
-
-  return result;
+  // 🔥 UPDATED FILTER (ADDED SUPPORT)
+  const data = filter
+    ? rawData.filter(d =>
+        d.skeletal_class === filter ||
+        getGrowth(d) === filter ||
+        getMaxillary(d) === filter ||
+        getMandibular(d) === filter
+      )
+    : rawData;
+const getYenAirwayTable = () => {
+  return data.map((d, i) => ({
+    id: i,
+    class: d.skeletal_class || "-",
+    yen: d?.angles?.YEN ?? d.YEN ?? "-",
+    airway:
+      typeof (d?.airway_width ?? d.airway) === "object"
+        ? (d?.airway_width?.upper_airway??
+           d?.airway?.upper_airway ??
+           "-")
+        : (d?.airway_width ?? d.airway ?? "-")
+  }));
 };
+  // ================= MATRIX =================
+
+  const getMatrix = (metric) => {
+    const classes = ["Class I", "Class II", "Class III"];
+    const growths = ["Normodivergent", "Hypodivergent", "Hyperdivergent"];
+    const result = {};
+    
+    classes.forEach(cls => {
+      result[cls] = {};
+
+      growths.forEach(g => {
+        const filtered = data.filter(d =>
+          (d.skeletal_class || "").toLowerCase() === cls.toLowerCase() &&
+          getGrowth(d).toLowerCase() === g.toLowerCase()
+        );
+
+        const values = filtered
+          .map(d => {
+            let val = null;
+
+            if (d?.angles && d.angles[metric] !== undefined) {
+              val = d.angles[metric];
+            } else if (d[metric] !== undefined) {
+              val = d[metric];
+            }
+
+            return val !== null ? parseFloat(val) : null;
+          })
+          .filter(v => v !== null && !isNaN(v));
+
+        const avg = values.length
+          ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
+          : "-";
+
+        result[cls][g] = avg;
+      });
+    });
+
+    return result;
+  };
+
+  // ================= DATA =================
 
   const divergenceData = countByKey(
     data.map(d => ({ divergence: getGrowth(d) })),
@@ -119,6 +157,17 @@ export default function Analytics() {
   );
 
   const classData = countByKey(data, "skeletal_class");
+
+  // 🔥 NEW DATA
+  const maxillaryData = countByKey(
+    data.map(d => ({ max: getMaxillary(d) })),
+    "max"
+  );
+
+  const mandibularData = countByKey(
+    data.map(d => ({ mand: getMandibular(d) })),
+    "mand"
+  );
 
   if (loading) return <Loading />;
 
@@ -129,10 +178,7 @@ export default function Analytics() {
       animate={{ opacity: 1 }}
     >
 
-      <motion.h1
-        className="text-3xl font-bold mb-6"
-        whileHover={{ scale: 1.03 }}
-      >
+      <motion.h1 className="text-3xl font-bold mb-6">
         Analytics Dashboard
       </motion.h1>
 
@@ -161,33 +207,46 @@ export default function Analytics() {
         } />
       </div>
 
+      {/* ORIGINAL CHARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ChartCard title="Class Distribution">
           <PieUI data={classData} onClick={setFilter} />
         </ChartCard>
 
         <ChartCard title="Divergence">
-          <PieUI data={divergenceData} />
+          <PieUI data={divergenceData} onClick={setFilter} />
         </ChartCard>
 
-        <ChartCard title="Class Comparison">
+        {/* <ChartCard title="Class Comparison">
           <BarUI data={classData} />
         </ChartCard>
 
         <ChartCard title="Divergence Comparison">
           <BarUI data={divergenceData} />
+        </ChartCard> */}
+      </div>
+
+      {/* NEW PIE CHARTS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <ChartCard title="Maxillary Position (SNA)">
+          <PieUI data={maxillaryData} onClick={setFilter} />
+        </ChartCard>
+
+        <ChartCard title="Mandibular Position (SNB)">
+          <PieUI data={mandibularData} onClick={setFilter} />
         </ChartCard>
       </div>
 
       <Matrix title="SNA Analysis" matrix={getMatrix("SNA")} />
       <Matrix title="SNB Analysis" matrix={getMatrix("SNB")} />
       <Matrix title="YEN Analysis" matrix={getMatrix("YEN")} />
+      <YenAirwayTable data={getYenAirwayTable()} />
 
     </motion.div>
   );
 }
 
-/* COMPONENTS */
+/* ================= COMPONENTS ================= */
 
 function TabBtn({ active, onClick, label }) {
   return (
@@ -247,6 +306,7 @@ function ChartCard({ title, children }) {
   );
 }
 
+// 🔥 UPDATED PIE (ANIMATION ONLY)
 function PieUI({ data, onClick }) {
   const [active, setActive] = useState(null);
 
@@ -256,6 +316,8 @@ function PieUI({ data, onClick }) {
         <Pie
           data={data}
           dataKey="value"
+          isAnimationActive={true}
+          animationDuration={800}
           onClick={(e)=>onClick?.(e.name)}
           onMouseEnter={(_, i)=>setActive(i)}
           activeIndex={active}
@@ -291,7 +353,7 @@ function BarUI({ data }) {
 
 function Matrix({ title, matrix }) {
   const [active, setActive] = useState(null);
-
+  
   return (
     <div className="mt-16">
       <h2 className="text-2xl font-semibold mb-6">{title}</h2>
@@ -328,14 +390,17 @@ function Matrix({ title, matrix }) {
                       )}
                     </h2>
 
-                    {val !== null && (
-                      <div className="mt-3 h-2 bg-gray-200 rounded">
-                        <motion.div
-                          initial={{width:0}}
-                          animate={{width:`${val}%`}}
-                          className="h-full bg-indigo-500"
-                        />
-                      </div>
+                  {val !== null && val !== "-" && (
+  <div className="mt-3 h-2 bg-gray-200 rounded overflow-hidden">
+    <motion.div
+      initial={{width:0}}
+      animate={{
+        width: `${Math.min((parseFloat(val) / 150) * 100, 100)}%`
+      }}
+      className="h-full bg-indigo-500"
+    />
+  </div>
+
                     )}
                   </motion.div>
                 );
@@ -353,6 +418,37 @@ function Loading() {
     <div className="p-10 animate-pulse">
       <div className="h-6 bg-gray-300 mb-4 w-1/3"></div>
       <div className="h-40 bg-gray-300"></div>
+    </div>
+  );
+}
+function YenAirwayTable({ data }) {
+  return (
+    <div className="mt-16">
+      <h2 className="text-2xl font-semibold mb-6">
+        YEN vs Airway Width Analysis
+      </h2>
+
+      <div className="bg-white p-4 rounded-xl shadow overflow-auto max-h-[400px]">
+        <table className="w-full text-sm border">
+          <thead className="bg-indigo-100 sticky top-0">
+            <tr>
+              <th className="p-2 border">Class</th>
+              <th className="p-2 border">YEN Angle</th>
+              <th className="p-2 border">Airway Width</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.id}>
+                <td className="p-2 border">{row.class}</td>
+                <td className="p-2 border">{row.yen}</td>
+                <td className="p-2 border">{row.airway}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

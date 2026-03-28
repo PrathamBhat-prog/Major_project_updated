@@ -27,6 +27,7 @@ export default function Sidebar() {
     { name: "Patients", path: "/admin/patients", icon: <User size={18} /> },
     { name: "Predictions", path: "/admin/predictions", icon: <Image size={18} /> },
     { name: "Communication", path: "/admin/chat", icon: <MessageSquare size={18} /> },
+    {name: "Advanced Analysis", path: "/admin/advancedanalytics", icon: <BarChart3 size={18} /> }
   ];
 
   // ================= FETCH PROFILE =================
