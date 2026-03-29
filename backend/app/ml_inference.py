@@ -182,13 +182,13 @@ def compute_angles(landmarks):
         SN = P["P2"] - P["P1"]       # S -> N
         NA = P["P5"] - P["P2"]       # N -> A
         NB = P["P6"] - P["P2"]       # N -> B
-        GoGn = P["P10"] - P["P9"]    # Go -> Gn
+        GoGn = P["P9"] - P["P10"]    # Go -> Gn
 
         # Skeletal angles
         SNA = angle(NA, SN)
         SNB = angle(NB, SN)
         ANB = SNA - SNB
-        SN_GoGn = angle(SN, GoGn)
+        SN_GoGn = full_angle(SN, GoGn)
 
         # YEN angle
         YEN =  full_angle(
@@ -339,7 +339,7 @@ def save_labeled_image(image_bytes, landmarks, path, angles=None):
     draw = ImageDraw.Draw(img)
 
     # Softer scaling (smaller than before)
-    r = max(1, int(min(w, h) * 0.006))   # smaller landmark
+    r = max(1, int(min(w, h) * 0.004))   # smaller landmark
     lw = max(1, int(min(w, h) * 0.003))  # thinner lines
     fs = max(8, int(min(w, h) * 0.015))  # smaller font
 

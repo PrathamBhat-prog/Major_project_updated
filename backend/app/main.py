@@ -12,6 +12,7 @@ from . import models, schemas, database, utils, auth, ml_inference
 from .report_generator import generate_ceph_report
 from .storage import upload_bytes
 from .patients import router as patients_router
+from .appointments import router as appointments_router
 from .master_excel import append_to_master_excel
 
 load_dotenv()
@@ -64,6 +65,7 @@ def get_db():
 # ==================================================
 app.include_router(auth.router)
 app.include_router(patients_router)
+app.include_router(appointments_router)
 
 # ==================================================
 # GET CEPHALOGRAM
@@ -464,7 +466,9 @@ def get_all_users(
             "username": u.username,
             "email": u.email,
             "role": u.role,
-            "is_active": u.is_active
+            "is_active": u.is_active,
+            "is_approved": u.is_approved,
+            "full_name": u.full_name
         }
         for u in users
     ]
@@ -536,6 +540,7 @@ def get_all_doctors(
     "phone": d.phone,
     "full_name": d.full_name,
     "is_active": d.is_active,
+    "is_approved": d.is_approved,
     "patient_count": patient_count
 })
 
@@ -565,6 +570,7 @@ def get_doctor_patients(
 @app.get("/user/profile")
 def get_profile(user: models.User = Depends(utils.get_current_user)):
     return {
+        "id": user.id,
         "username": user.username,
         "full_name": getattr(user, "full_name", None),
         "phone": getattr(user, "phone", None),

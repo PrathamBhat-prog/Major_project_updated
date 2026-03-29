@@ -32,10 +32,23 @@ class User(Base):
     profile_image = Column(String, nullable=True)
     is_profile_complete = Column(Boolean, default=False)
 
+    # 🔥 RESET PASSWORD FIELDS
+    reset_token = Column(String, nullable=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
+
+    # 🔥 ADMIN APPROVAL FLAG
+    is_approved = Column(Boolean, default=True) # Default all to True, will intercept in auth for role='admin'
+
     # relationships
     patients = relationship(
         "Patient",
         back_populates="owner",
+        cascade="all, delete"
+    )
+
+    appointments = relationship(
+        "Appointment",
+        back_populates="doctor",
         cascade="all, delete"
     )
 
@@ -132,3 +145,47 @@ class Prediction(Base):
         "Patient",
         back_populates="predictions"
     )
+
+
+# =========================================================
+# 📅 APPOINTMENT TABLE
+# =========================================================
+class Appointment(Base):
+    __tablename__ = "appointments"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    patient_name = Column(String, nullable=False)
+    patient_email = Column(String, nullable=True)
+    patient_phone = Column(String, nullable=True)
+
+    appointment_date = Column(DateTime, nullable=False)
+    reason = Column(Text, nullable=True)
+
+    # Status: pending, confirmed, completed, cancelled
+    status = Column(String, default="pending")
+
+    doctor_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # relationship
+    doctor = relationship(
+        "User",
+        back_populates="appointments"
+    )
+
+# =========================================================
+# 💬 CHAT MESSAGE TABLE
+# =========================================================
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    is_read = Column(Boolean, default=False)
+
+    sender = relationship("User", foreign_keys=[sender_id])
+    recipient = relationship("User", foreign_keys=[recipient_id])

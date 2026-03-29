@@ -16,6 +16,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
     id: Optional[int] = None
+    is_approved: Optional[bool] = True
 
 class UserCreate(BaseModel):
     username: str   # ← must exist
@@ -25,11 +26,21 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
 
 class UserOut(BaseModel):
     id: int
     username: str
     role: str
+    is_approved: bool
+    is_active: bool
+    is_profile_complete: bool
 
     class Config:
         from_attributes = True
@@ -187,3 +198,56 @@ class DoctorPredictionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ==================================================
+# APPOINTMENT SCHEMAS
+# ==================================================
+
+class AppointmentBase(BaseModel):
+    patient_name: str
+    patient_email: Optional[str] = None
+    patient_phone: Optional[str] = None
+    appointment_date: datetime
+    reason: Optional[str] = None
+
+class AppointmentCreate(AppointmentBase):
+    pass
+
+class AppointmentUpdate(BaseModel):
+    status: Optional[str] = None
+    suggested_date: Optional[datetime] = None
+
+class AppointmentOut(AppointmentBase):
+    id: int
+    doctor_id: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ==================================================
+# CHAT SCHEMAS
+# ==================================================
+
+class MessageCreate(BaseModel):
+    recipient_id: int
+    content: str
+
+class MessageOut(BaseModel):
+    id: int
+    sender_id: int
+    recipient_id: int
+    content: str
+    timestamp: datetime
+    is_read: bool
+
+    class Config:
+        from_attributes = True
+
+class ChatContactOut(UserOut):
+    unread_count: int = 0
+    last_message_at: Optional[datetime] = None
+    last_message_content: Optional[str] = None
+    full_name: Optional[str] = None

@@ -1,65 +1,85 @@
-/* Tailwind directives - requires Tailwind configured in project */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --obsidian-bg: #030508;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --accent-indigo: #4f46e5;
+  --accent-violet: #8b5cf6;
+  --accent-cyan: #06b6d4;
+  --accent-rose: #f43f5e;
+}
+
 html, body, #root {
   height: 100%;
 }
-body {
-  @apply bg-gradient-to-br from-blue-50 to-indigo-50;
-}
 
-/* Global Styles */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+    background-color: #f8fafc; /* Standard Light Background for Dashboards */
+    color: #0f172a;
 }
 
-/* Button Styles */
-.button {
-    background-color: #6a11cb;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+/* Obsidian public theme override */
+.theme-obsidian {
+    background-color: var(--obsidian-bg);
+    color: #f8fafc;
 }
 
-.button:hover {
-    background-color: #2575fc;
+/* Glassmorphism Utilities */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
 }
 
-/* Card Styles */
-.card {
-    background: white;
+.glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin: 20px;
-    transition: transform 0.3s ease;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
 
-.card:hover {
-    transform: translateY(-5px);
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* Header Styles */
-.header {
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
 }
 
-/* Text Styles */
-h1, h2, h3 {
-    margin: 0;
-    color: #333;
+/* Chart consistent styling */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+    stroke: rgba(0, 0, 0, 0.05);
 }
 
-p {
-    line-height: 1.6;
+.recharts-text {
+    fill: #64748b !important;
+    font-weight: 600;
 }

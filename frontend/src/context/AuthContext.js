@@ -12,7 +12,12 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 // -----------------------------
 function safeDecode(token) {
   try {
-    return jwtDecode(token);
+    const decoded = jwtDecode(token);
+    // 🛡️ Map backend 'sub' to frontend 'username' for consistency
+    if (decoded && decoded.sub && !decoded.username) {
+      decoded.username = decoded.sub;
+    }
+    return decoded;
   } catch (err) {
     console.error("JWT Decode Error:", err);
     return null;
@@ -25,10 +30,11 @@ function safeDecode(token) {
 export const AuthProvider = ({ children }) => {
 
   const [token, setToken] = useState(() => localStorage.getItem("ceph_token"));
-  const [currentUser, setCurrentUser] = useState(undefined);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // 🔥 NEW PROFILE STATE
   const [profile, setProfile] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,15 +64,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       const storedToken = localStorage.getItem("ceph_token");
-
       if (!storedToken) {
-        setCurrentUser(null);
-        setToken(null);
         setLoading(false);
         return;
       }
 
       const decoded = safeDecode(storedToken);
+      if (!decoded) {
+        setLoading(false);
+        return;
+      }
 
       if (!decoded) {
         localStorage.removeItem("ceph_token");
@@ -201,6 +208,30 @@ export const AuthProvider = ({ children }) => {
   }, [currentUser, logout]);
 
   // ======================================================
+  // UNREAD COUNT POLLING
+  // ======================================================
+  useEffect(() => {
+    if (!token) {
+      setUnreadCount(0);
+      return;
+    }
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/chat/unread-total`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unread_count || 0);
+        }
+      } catch (e) {}
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000); // 1 minute to save on hosting costs
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // ======================================================
   // DEBUG
   // ======================================================
   useEffect(() => {
@@ -212,7 +243,9 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         currentUser,
-        profile, // 🔥 IMPORTANT
+        profile,
+        unreadCount,
+        setUnreadCount,
         token,
         loading,
         error,
