@@ -612,3 +612,73 @@ def admin_predictions_debug(db: Session = Depends(get_db)):
         }
         for p in preds
     ]
+
+# ==================================================
+# ADMIN PDF REPORTS
+# ==================================================
+from . import admin_report_generator
+from fastapi.responses import FileResponse
+
+@app.get("/admin/reports/advanced")
+def get_advanced_report(
+    source: str = "db",
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+    
+    data = []
+    if source == "db":
+        # Direct call to existing function
+        data = admin_get_all_predictions(db, user)
+    else:
+        # Excel
+        data = get_excel_data()
+
+    os.makedirs("local_storage/reports", exist_ok=True)
+    report_path = f"local_storage/reports/Admin_Advanced_Insights_{source}.pdf"
+    admin_report_generator.generate_advanced_report(report_path, source, data)
+    
+    return FileResponse(
+        path=report_path,
+        media_type="application/pdf",
+        filename=f"CephAI_Insights_{source}.pdf"
+    )
+
+@app.get("/admin/reports/simple")
+def get_simple_report(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(utils.get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(403, "Not authorized")
+
+    patients = db.query(models.Patient).count()
+    preds = db.query(models.Prediction).all()
+    doctors = db.query(models.User).filter(models.User.role == "doctor").count()
+
+    dist = {"Class I": 0, "Class II": 0, "Class III": 0, "Unknown": 0}
+    for p in preds:
+        sc = p.skeletal_class or "Unknown"
+        if sc in dist:
+            dist[sc] += 1
+        else:
+            dist["Unknown"] += 1
+
+    stats = {
+        "total_patients": patients,
+        "total_predictions": len(preds),
+        "total_doctors": doctors,
+        "class_distribution": dist
+    }
+
+    os.makedirs("local_storage/reports", exist_ok=True)
+    report_path = "local_storage/reports/Admin_Activity_Report.pdf"
+    admin_report_generator.generate_simple_report(report_path, stats)
+
+    return FileResponse(
+        path=report_path,
+        media_type="application/pdf",
+        filename="CephAI_Activity_Report.pdf"
+    )

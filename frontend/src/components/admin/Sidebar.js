@@ -24,13 +24,13 @@ export default function Sidebar() {
   const isMaster = masterEmails.includes(currentUser?.username?.toLowerCase());
 
   const menu = [
-    { name: "Global Stats", path: "/admin/dashboard", icon: <LayoutDashboard size={20} /> },
-    { name: "Simple Reports", path: "/admin/analytics", icon: <BarChart3 size={20} /> },
-    { name: "Doctor List", path: "/admin/manage-doctors", icon: <Users size={20} /> },
-    { name: "All Patients", path: "/admin/patients", icon: <User size={20} /> },
-    { name: "AI X-Rays", path: "/admin/predictions", icon: <Image size={20} /> },
-    { name: "Data Insights", path: "/admin/advancedanalytics", icon: <BarChart3 size={20} /> },
-    { name: "Message Box", path: "/admin/chat", icon: <MessageSquare size={20} /> }
+    { name: "Analytics Overview", path: "/admin/dashboard", icon: <LayoutDashboard size={20} /> },
+    { name: "Activity Reports", path: "/admin/analytics", icon: <BarChart3 size={20} /> },
+    { name: "Clinician Directory", path: "/admin/manage-doctors", icon: <Users size={20} /> },
+    { name: "Patient Registry", path: "/admin/patients", icon: <User size={20} /> },
+    { name: "Clinical Analysis", path: "/admin/predictions", icon: <Image size={20} /> },
+    { name: "Diagnostic Insights", path: "/admin/advancedanalytics", icon: <BarChart3 size={20} /> },
+    { name: "Communications Hub", path: "/admin/chat", icon: <MessageSquare size={20} /> }
   ];
 
   if (isMaster) {
@@ -64,9 +64,9 @@ export default function Sidebar() {
            </div>
            <div>
               <span className="font-extrabold text-2xl tracking-tight text-slate-900 block leading-none">
-                Cephalo<span className="text-indigo-600">{isMaster ? "Host" : "AI"}</span>
+                Cephalo<span className="text-indigo-600">AI Admin</span>
               </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mt-1">{isMaster ? "Primary Control Node" : "Admin Central"}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mt-1">Global Management Console</span>
            </div>
          </div>
       </div>

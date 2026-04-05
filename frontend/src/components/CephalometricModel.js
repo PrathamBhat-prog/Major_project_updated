@@ -1,75 +1,87 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Play, Info } from 'lucide-react';
+import { ChevronRight, Play, Award, CheckCircle, Shield } from 'lucide-react';
 
 const CephalometricBackground = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative w-full h-[calc(100vh-76px)] flex items-center justify-center pointer-events-none">
+    <div className="relative w-full h-[calc(100vh-76px)] flex items-center justify-center bg-transparent">
       
       {/* Narrative Container */}
-      <div className="max-w-4xl text-center space-y-8 pointer-events-auto px-6 animate-fade-in relative z-10">
+      <div className="max-w-7xl w-full px-8 flex flex-col lg:flex-row items-center gap-16 relative z-10 animate-fade-in">
         
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 backdrop-blur-md">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]"></span>
-          Modern Health Tools
+        {/* Left Content */}
+        <div className="flex-1 space-y-8 text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-wider text-cyan-400 backdrop-blur-md">
+            <Award size={14} /> Registered Medical Device Class II
+          </div>
+
+          <h1 className="text-6xl md:text-8xl font-bold text-white tracking-tight leading-[1.05]">
+         AI for           <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Cephalometric</span> <br/>
+            Intelligence.
+          </h1>
+          
+          <p className="text-xl text-slate-400 max-w-xl font-medium leading-relaxed">
+            Automate orthodontic landmarks with clinical precision. Reduce analysis time by 60% with our peer-reviewed neural engine.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-5 pt-4">
+            <button 
+              onClick={() => navigate("/login")} 
+              className="px-10 py-5 bg-cyan-600 text-white rounded-xl font-bold transition-all hover:bg-white hover:text-cyan-900 hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm shadow-2xl shadow-cyan-500/20 active:scale-95"
+            >
+              <Play size={18} fill="currentColor" />
+              Sign In to Portal
+              <ChevronRight size={18} />
+            </button>
+            <button 
+              onClick={() => navigate("/lm")} 
+              className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-xl font-bold transition-all hover:bg-white/10 flex items-center justify-center gap-2 text-sm backdrop-blur-md active:scale-95"
+            >
+              Explore Capabilities
+            </button>
+          </div>
+
+          <div className="flex items-center gap-12 pt-8 border-t border-white/5">
+             <div className="space-y-1">
+                <div className="text-3xl font-bold text-white">2.4<span className="text-sm font-medium text-slate-400 ml-1">sec</span></div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Processing</div>
+             </div>
+             <div className="w-px h-12 bg-white/10"></div>
+             <div className="space-y-1">
+                <div className="text-3xl font-bold text-white">11 / 19</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Benchmarks</div>
+             </div>
+          </div>
         </div>
 
-        <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-4 uppercase italic">
-          Cephalo<span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">AI</span>
-        </h1>
-        
-        <p className="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto font-bold leading-relaxed uppercase tracking-normal">
-          Smart AI for Dental X-Rays. Easy and Fast. Built for your clinical workflow.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-5 justify-center mt-12">
-          {/* Changed to dark button for better accessibility/contrast */}
-          <button 
-            onClick={() => navigate("/login")} 
-            className="group px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black transition-all shadow-2xl hover:bg-black hover:-translate-y-1 flex items-center justify-center gap-2 uppercase tracking-widest text-xs italic shadow-indigo-500/20"
-          >
-            <Play size={16} fill="currentColor" />
-            Sign In Now
-            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button 
-            onClick={()=>navigate("/lm")} 
-            className="px-10 py-5 bg-white/5 border border-white/10 hover:bg-white/10 backdrop-blur-md text-white rounded-2xl font-black transition-all hover:-translate-y-1 flex items-center justify-center gap-2 uppercase tracking-widest text-xs italic"
-          >
-            <Info size={16} />
-            Learn More
-          </button>
+        {/* Right Visual (RESTORED) */}
+        <div className="flex-1 w-full max-w-xl hidden lg:block animate-float">
+           <div className="relative bg-white/5 p-4 rounded-[3rem] border border-white/10 shadow-3xl backdrop-blur-sm group">
+              <img 
+                src="/images/skull_medical_analysis.png" 
+                alt="AI Cephalometric Analysis" 
+                className="w-full h-auto rounded-[2.5rem] grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" 
+              />
+              <div className="absolute top-8 right-8">
+                 <div className="bg-white/10 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-4 animate-bounce-slow">
+                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-[#020408]">
+                       <CheckCircle size={20} />
+                    </div>
+                    <div>
+                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Status</div>
+                       <div className="text-xs font-bold text-white">Neural Engine Active</div>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
-      </div>
 
-      {/* Grid Capability Overlays - Simple English */}
-      <div className="absolute bottom-20 w-full px-8 md:px-24 grid grid-cols-1 md:grid-cols-3 gap-10 hidden md:grid z-10">
-        {/* <CapabilityCard 
-          title="High Accuracy" 
-          desc="AI helps find landmarks on X-rays with very high precision."
-        /> */}
-        {/* <CapabilityCard 
-          title="Fast Results" 
-          desc="Get your analysis reports in less than 3 seconds per patient."
-        /> */}
-        {/* <CapabilityCard 
-          title="Doctor Trusted" 
-          desc="Standard medical rules ensure your reports are safe and correct."
-        /> */}
       </div>
     </div>
   );
 };
-
-function CapabilityCard({ title, desc }) {
-  return (
-    <div className="p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 group hover:bg-white/[0.04] hover:border-white/10 transition-all pointer-events-auto backdrop-blur-sm">
-      <h3 className="text-white font-black text-xs uppercase tracking-widest mb-3 opacity-40 group-hover:opacity-100 transition-opacity italic">{title}</h3>
-      <p className="text-slate-500 text-sm font-bold leading-relaxed group-hover:text-slate-400 transition-colors uppercase tracking-tight">{desc}</p>
-    </div>
-  );
-}
 
 export default CephalometricBackground;

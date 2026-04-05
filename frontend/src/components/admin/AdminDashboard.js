@@ -154,55 +154,55 @@ export default function AdminDashboard() {
     <div className="p-10 space-y-12 max-w-[1600px] mx-auto animate-fade-in font-sans">
       
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 mt-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-10 rounded-3xl border border-slate-100 shadow-sm mt-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-3">{isMaster ? "Global Host Intelligence" : "Usage Trends"}</h1>
-          <p className="text-slate-400 font-bold uppercase text-[11px] tracking-widest">{isMaster ? "Master node authorization & platform health" : "Global Platform Analytics"}</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-2">{isMaster ? "Diagnostic Platform Overview" : "Clinical Usage Statistics"}</h1>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">{isMaster ? "System-wide authorization & infrastructure health" : "Global Diagnostic Activity"}</p>
         </div>
         <div className="flex items-center gap-4">
            {isMaster && (
-             <div className="flex items-center gap-2 bg-indigo-600 px-5 py-2.5 rounded-2xl text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-200">
-                <Shield size={14} /> Master Node Active
+             <div className="flex items-center gap-2 bg-indigo-600 px-4 py-2 rounded-xl text-white font-black text-[9px] uppercase tracking-[0.2em] shadow-lg shadow-indigo-100">
+                <Shield size={14} /> Admin Access Verified
              </div>
            )}
-           <div className="flex items-center gap-2 bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100 text-emerald-700 font-bold text-xs uppercase tracking-widest">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              All Systems Operational
+           <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 text-emerald-700 font-bold text-[10px] uppercase tracking-widest">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Infrastructure Operational
            </div>
         </div>
       </div>
 
       {/* ================= MASTER ADMIN APPROVALS (HOST HUB) ================= */}
       {isMaster && (
-        <div className="bg-gradient-to-br from-indigo-700 to-indigo-900 border border-indigo-500 rounded-[4rem] p-16 shadow-2xl shadow-indigo-300 relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-indigo-800 to-[#0f172a] border border-indigo-400 rounded-[2.5rem] p-12 shadow-xl relative overflow-hidden group">
            <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
-              <div className="flex items-center gap-10 text-center lg:text-left">
-                 <div className="p-8 bg-white text-indigo-900 rounded-[2.5rem] shadow-2xl">
-                    <Shield size={48} />
+           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
+              <div className="flex items-center gap-8 text-center lg:text-left">
+                 <div className="p-6 bg-white text-indigo-950 rounded-2xl shadow-xl">
+                    <Shield size={36} />
                  </div>
                  <div>
-                    <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-4">Pending Authorization Hub</h2>
-                    <p className="text-indigo-100 font-bold uppercase tracking-widest text-xs flex items-center gap-3">
+                    <h2 className="text-3xl font-black text-white tracking-tight leading-none mb-3">Clinician Authorization Queue</h2>
+                    <p className="text-indigo-200 font-bold uppercase tracking-widest text-[10px] flex items-center justify-center lg:justify-start gap-3">
                        {pendingAdmins.length > 0 ? (
-                         <><span className="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span> {pendingAdmins.length} Nodes awaiting global authorization</>
+                         <><span className="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span> {pendingAdmins.length} Practitions awaiting verification</>
                        ) : (
-                         <><CheckCircle size={16} /> All administrative nodes authorized</>
+                         <><CheckCircle size={14} /> All network clinicians verified</>
                        )}
                     </p>
                  </div>
               </div>
-              <div className="flex flex-wrap gap-5 justify-center">
+              <div className="flex flex-wrap gap-4 justify-center">
                  {pendingAdmins.map(u => (
-                    <div key={u.id} className="p-6 bg-white/10 border border-white/20 rounded-[2.5rem] backdrop-blur-md flex items-center gap-6 group hover:bg-white transition-all duration-500">
-                       <span className="text-[11px] font-black text-white group-hover:text-indigo-900 uppercase tracking-widest ml-4">{u.username.split('@')[0]}</span>
-                       <button onClick={() => handleApprove(u.id)} className="px-8 py-4 bg-white text-indigo-600 rounded-3xl text-[10px] font-black uppercase hover:bg-slate-900 hover:text-white transition-all shadow-xl active:scale-95 group-hover:bg-indigo-600 group-hover:text-white">
-                          Authorize Node
+                    <div key={u.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md flex items-center gap-5 group hover:bg-white transition-all duration-300">
+                       <span className="text-[10px] font-black text-white group-hover:text-slate-900 uppercase tracking-widest ml-2">{u.username.split('@')[0]}</span>
+                       <button onClick={() => handleApprove(u.id)} className="px-6 py-3 bg-white text-indigo-900 rounded-xl text-[9px] font-black uppercase hover:bg-slate-900 hover:text-white transition-all shadow-lg active:scale-95 group-hover:bg-indigo-600 group-hover:text-white border-none">
+                          Verify Access
                        </button>
                     </div>
                  ))}
                  {pendingAdmins.length === 0 && (
-                   <p className="text-indigo-200/50 font-black uppercase text-[10px] tracking-[0.3em] italic">No pending requests in queue</p>
+                   <p className="text-indigo-200/30 font-black uppercase text-[9px] tracking-[0.3em] italic">Queue cleared</p>
                  )}
               </div>
            </div>
@@ -218,37 +218,37 @@ export default function AdminDashboard() {
 
       {/* ================= CHARTS ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-[4rem] p-14 border border-slate-100 shadow-xl shadow-slate-200/50">
-          <div className="mb-14 flex items-center justify-between">
-             <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Productivity Map</h2>
-             <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><TrendingUp size={24} /></div>
+        <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm">
+          <div className="mb-10 flex items-center justify-between">
+             <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Patient Analysis Volume</h2>
+             <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><TrendingUp size={22} /></div>
           </div>
           <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={doctorChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
-                <XAxis dataKey="name" tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }} />
-                <Tooltip cursor={{ fill: 'rgba(79, 70, 229, 0.03)' }} contentStyle={{ borderRadius: '2rem', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', padding: '1.5rem', fontWeight: 'bold' }} />
-                <Bar dataKey="patients" fill="#4f46e5" radius={[12, 12, 12, 12]} maxBarSize={50} />
+                <XAxis dataKey="name" tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }} />
+                <Tooltip cursor={{ fill: 'rgba(79, 70, 229, 0.03)' }} contentStyle={{ borderRadius: '1.25rem', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '1rem', fontWeight: 'bold' }} />
+                <Bar dataKey="patients" fill="#4f46e5" radius={[8, 8, 8, 8]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white rounded-[4rem] p-14 border border-slate-100 shadow-xl shadow-slate-200/50">
-           <div className="mb-14 flex items-center justify-between">
-             <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">AI Penetration</h2>
-             <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl"><Zap size={24} /></div>
+        <div className="bg-white rounded-3xl p-10 border border-slate-100 shadow-sm">
+           <div className="mb-10 flex items-center justify-between">
+             <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Diagnostic Distribution</h2>
+             <div className="p-2.5 bg-cyan-50 text-cyan-600 rounded-xl"><Zap size={22} /></div>
           </div>
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={modeStats} dataKey="value" cx="50%" cy="50%" innerRadius={100} outerRadius={140} paddingAngle={10}>
+                <Pie data={modeStats} dataKey="value" cx="50%" cy="50%" innerRadius={90} outerRadius={120} paddingAngle={8}>
                   {modeStats.map((entry, i) => <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="transparent" />)}
                 </Pie>
-                <Legend layout="horizontal" verticalAlign="bottom" align="center" formatter={(value) => <span className="text-slate-500 font-bold uppercase text-[11px] tracking-widest ml-2">{value}</span>} />
-                <Tooltip contentStyle={{ borderRadius: '2rem', border: 'none', padding: '1rem', fontWeight: 'bold' }} />
+                <Legend layout="horizontal" verticalAlign="bottom" align="center" formatter={(value) => <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest ml-2">{value}</span>} />
+                <Tooltip contentStyle={{ borderRadius: '1.25rem', border: 'none', padding: '0.75rem', fontWeight: 'bold' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -323,14 +323,14 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon, accent, isMaster }) {
   return (
-    <div className={`p-12 rounded-[4rem] bg-white border border-slate-100 shadow-xl shadow-slate-200/50 space-y-6 hover:-translate-y-2 transition-all group hover:shadow-2xl`}>
-      <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-inner border shadow-sm transition-transform group-hover:scale-110 duration-500 ${accent}`}>{icon}</div>
+    <div className={`p-10 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-5 hover:-translate-y-1 transition-all group hover:shadow-lg`}>
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner border shadow-sm transition-all group-hover:rotate-6 duration-300 ${accent}`}>{icon}</div>
       <div>
         <h2 className="text-6xl font-black text-slate-900 tracking-tighter mb-2 leading-none">{value}</h2>
-        <span className="font-extrabold text-2xl tracking-tight text-slate-900 block leading-none">
-          {isMaster ? "Cephalo" : "Cephalo"}<span className="text-indigo-600">{isMaster ? "Host" : "AI"}</span>
+        <span className="font-extrabold text-xl tracking-tight text-slate-900 block leading-none">
+          {isMaster ? "Diagnostic" : "Clinical"}<span className="text-indigo-600"> Intelligence</span>
         </span>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mt-1">{isMaster ? "Primary Control Node" : "Admin Central"}</span>
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mt-2">{title}</span>
       </div>
     </div>
   );

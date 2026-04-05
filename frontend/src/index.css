@@ -73,6 +73,27 @@ body {
     animation: fadeIn 0.5s ease-out forwards;
 }
 
+/* QR Scanner Custom Animations */
+@keyframes scanline {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes pulse-indigo {
+  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+
+.animate-scan {
+  animation: scanline 2.5s ease-in-out infinite;
+}
+
+.animate-pulse-indigo {
+  animation: pulse-indigo 2s infinite;
+}
+
 /* Chart consistent styling */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {

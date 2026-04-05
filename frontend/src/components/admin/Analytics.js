@@ -6,6 +6,9 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -19,6 +22,78 @@ export default function Analytics() {
   const [excelData, setExcelData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const headerElement = document.getElementById("pdf-official-header");
+      const reportElement = document.getElementById("report-container");
+      const forceGrid = [
+        { id: "grid-stats", temp: "grid grid-cols-4 gap-4 mb-6" },
+        { id: "grid-charts1", temp: "grid grid-cols-2 gap-6" },
+        { id: "grid-charts2", temp: "grid grid-cols-2 gap-6 mt-6" }
+      ];
+      
+      const prev = {};
+      forceGrid.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (el) {
+          prev[f.id] = el.className;
+          el.className = f.temp;
+        }
+      });
+
+      const matrixGrids = document.querySelectorAll('.matrix-grid');
+      const prevMatrix = [];
+      matrixGrids.forEach((el, index) => {
+        prevMatrix[index] = el.className;
+        el.className = "grid grid-cols-3 gap-6 matrix-grid";
+      });
+
+      const defaultWidth = reportElement.style.width;
+      reportElement.style.width = "1280px";
+      headerElement.style.display = "flex";
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      
+      const canvas = await html2canvas(reportElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      
+      const pdfWidth = canvas.width / 2;
+      const pdfHeight = canvas.height / 2;
+      
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [pdfWidth, pdfHeight]
+      });
+      
+      pdf.addImage(canvas.toDataURL("image/jpeg", 1.0), "JPEG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`CephAI_Activity_Report.pdf`);
+      
+      headerElement.style.display = "none";
+      reportElement.style.width = defaultWidth;
+      
+      forceGrid.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (el) el.className = prev[f.id];
+      });
+      matrixGrids.forEach((el, index) => {
+        el.className = prevMatrix[index];
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Error generating graphical PDF report.");
+      const headerElement = document.getElementById("pdf-official-header");
+      if(headerElement) headerElement.style.display = "none";
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -173,14 +248,46 @@ const getYenAirwayTable = () => {
 
   return (
     <motion.div
+      id="report-container"
       className="p-6 min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
 
-      <motion.h1 className="text-3xl font-bold mb-6">
-        Analytics Dashboard
-      </motion.h1>
+      {/* HIDDEN OFFICIAL HEADER (Visible only during PDF Generation) */}
+      <div id="pdf-official-header" style={{ display: 'none' }} className="w-full flex justify-between items-center bg-[#e0ecff] p-6 border-b-[6px] border-indigo-800 rounded-2xl mb-8">
+         <div className="flex items-center gap-6">
+             <div className="w-16 h-16 bg-white rounded-xl shadow-md p-2 flex items-center justify-center font-black text-indigo-800 border-2 border-indigo-100 uppercase overflow-hidden">
+               DSCDS
+             </div>
+             <div>
+                <h1 className="text-2xl font-black text-slate-900 leading-tight">Dayananda Sagar College of Dental Sciences</h1>
+                <p className="text-base font-bold text-slate-600">Department of Orthodontics</p>
+                <div className="flex items-center gap-2 mt-1">
+                   <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">CephAI Activity Report</span>
+                   <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[10px] uppercase">
+                     Global Architecture
+                   </span>
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 mt-2 tracking-widest uppercase">Generated on: {new Date().toLocaleString()}</p>
+             </div>
+         </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <motion.h1 className="text-3xl font-bold">
+          Analytics Dashboard
+        </motion.h1>
+        <button
+          onClick={handleDownloadReport}
+          disabled={downloading}
+          className={`px-6 py-2.5 rounded-2xl font-black text-xs transition-all flex items-center gap-2 shadow-lg border ${
+            downloading ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-500 hover:shadow-indigo-500/30 hover:-translate-y-0.5"
+          }`}
+        >
+          <Download size={14} /> {downloading ? "GENERATING PDF..." : "DOWNLOAD ACTIVITY REPORT"}
+        </button>
+      </div>
 
       <div className="flex gap-4 mb-6">
         <TabBtn active={tab==="db"} onClick={() => setTab("db")} label="Database" />
@@ -196,7 +303,7 @@ const getYenAirwayTable = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div id="grid-stats" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard title="Total" value={data.length} />
         <StatCard title="Class II" value={data.filter(d=>d.skeletal_class==="Class II").length} />
         <StatCard title="Class III" value={data.filter(d=>d.skeletal_class==="Class III").length} />
@@ -208,7 +315,7 @@ const getYenAirwayTable = () => {
       </div>
 
       {/* ORIGINAL CHARTS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div id="grid-charts1" className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ChartCard title="Class Distribution">
           <PieUI data={classData} onClick={setFilter} />
         </ChartCard>
@@ -227,7 +334,7 @@ const getYenAirwayTable = () => {
       </div>
 
       {/* NEW PIE CHARTS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div id="grid-charts2" className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <ChartCard title="Maxillary Position (SNA)">
           <PieUI data={maxillaryData} onClick={setFilter} />
         </ChartCard>
@@ -316,8 +423,7 @@ function PieUI({ data, onClick }) {
         <Pie
           data={data}
           dataKey="value"
-          isAnimationActive={true}
-          animationDuration={800}
+          isAnimationActive={false}
           onClick={(e)=>onClick?.(e.name)}
           onMouseEnter={(_, i)=>setActive(i)}
           activeIndex={active}
@@ -341,7 +447,7 @@ function BarUI({ data }) {
         <XAxis dataKey="name"/>
         <YAxis/>
         <Tooltip />
-        <Bar dataKey="value" animationDuration={800}>
+        <Bar dataKey="value" isAnimationActive={false}>
           {data.map((_,i)=>(
             <Cell key={i} fill={COLORS[i%COLORS.length]} />
           ))}
@@ -366,7 +472,7 @@ function Matrix({ title, matrix }) {
           <div key={cls} className="mb-10">
             <h3 className="mb-4 font-semibold">{cls}</h3>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-6 matrix-grid">
               {Object.entries(matrix[cls]).map(([growth,val])=>{
                 const id = cls+growth;
                 const isActive = active===id;

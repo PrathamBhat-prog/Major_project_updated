@@ -1,33 +1,39 @@
+// filepath: src/components/backgrounds/ThreeBackground.js
 import React, { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Points, PointMaterial } from "@react-three/drei";
+import { Points, PointMaterial, Line } from "@react-three/drei";
+import * as THREE from "three";
 
-function Starfield() {
-  const ref = useRef();
+function NeuralNetwork() {
+  const pointsRef = useRef();
+  const count = 1000; // Balanced for cleaner look
   
-  const particles = useMemo(() => {
-    const data = new Float32Array(5000 * 3);
-    for (let i = 0; i < data.length; i++) {
-      data[i] = (Math.random() - 0.5) * 12;
+  const [positions] = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+       pos[i * 3] = (Math.random() - 0.5) * 15;
+       pos[i * 3 + 1] = (Math.random() - 0.5) * 15;
+       pos[i * 3 + 2] = (Math.random() - 0.5) * 15;
     }
-    return data;
+    return [pos];
   }, []);
 
-  useFrame((state, delta) => {
-    ref.current.rotation.x -= delta / 15;
-    ref.current.rotation.y -= delta / 25;
+  useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+    pointsRef.current.rotation.y = time * 0.03;
+    pointsRef.current.rotation.x = time * 0.01;
   });
 
   return (
-    <group rotation={[0, 0, Math.PI / 4]}>
-      <Points ref={ref} positions={particles} stride={3} frustumCulled={false}>
+    <group>
+      <Points ref={pointsRef} positions={positions} stride={3} frustumCulled={false}>
         <PointMaterial
           transparent
-          color="#ffffff"
-          size={0.015}
+          color="#00f5d4"
+          size={0.05} // Increased to "large" size as requested
           sizeAttenuation={true}
           depthWrite={false}
-          opacity={0.3}
+          opacity={0.7}
         />
       </Points>
     </group>
@@ -36,9 +42,9 @@ function Starfield() {
 
 export default function ThreeBackground() {
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none bg-[#020408]">
-      <Canvas camera={{ position: [0, 0, 1] }}>
-        <Starfield />
+    <div className="fixed inset-0 z-0 pointer-events-none bg-[#010204]">
+      <Canvas camera={{ position: [0, 0, 5], fov: 70 }}>
+        <NeuralNetwork />
       </Canvas>
     </div>
   );

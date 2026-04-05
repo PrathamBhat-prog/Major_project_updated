@@ -1,7 +1,8 @@
 import React from "react";
 import { 
-  Cpu, ShieldCheck, Zap, BarChart3, 
-  ArrowRight, CheckCircle2 
+  Cpu, ShieldCheck, Zap, Activity, 
+  ArrowRight, CheckCircle2, Laptop, Smartphone,
+  BarChart3, Layers, FileText, Share2, ClipboardList
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -9,96 +10,253 @@ export default function Learnmore() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen relative py-20 px-6 max-w-7xl mx-auto space-y-32 animate-fade-in text-white">
+    <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
       
-      {/* Narrative Section */}
-      <div className="text-center space-y-6 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400">
-          How it works
+      {/* 1. HERO SECTION */}
+      <section className="relative pt-24 pb-20 px-6 max-w-7xl mx-auto text-center animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400 mb-8 backdrop-blur-md">
+           <Smartphone size={12} className="inline md:hidden" />
+           <Laptop size={12} className="hidden md:inline" />
+           Clinical Intelligence Engine
         </div>
-        <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none uppercase italic">
-          High Accuracy <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-600">AI Results</span>
+        
+        <h1 className="text-5xl md:text-8xl font-bold tracking-tight leading-[1.1] mb-8">
+          AI-Powered <br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
+            Cephalometric Intelligence
+          </span>
         </h1>
-        <p className="text-lg md:text-xl text-slate-500 font-bold leading-relaxed uppercase tracking-tight">
-          CephaloAI uses smart technology to automatically find points on dental X-rays. It saves time and helps doctors work better.
+        
+        <p className="max-w-2xl mx-auto text-slate-400 text-lg md:text-xl font-medium leading-relaxed mb-12">
+          Automated landmark detection, classification, & clinical insights. Engineered for the modern orthodontic practice.
         </p>
-      </div>
 
-      {/* Feature Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <FeatureCard 
-          icon={<Cpu className="text-indigo-500" />}
-          title="Smart AI"
-          desc="Our computer brain has studied thousands of X-rays to learn exactly where to look."
-        />
-        <FeatureCard 
-          icon={<Zap className="text-indigo-500" />}
-          title="Fast Help"
-          desc="Calculate all dental angles and numbers in just a few seconds. No more slow drawing."
-        />
-        <FeatureCard 
-          icon={<ShieldCheck className="text-indigo-500" />}
-          title="Private Data"
-          desc="We keep all your patient info safe and locked with the best digital security."
-        />
-      </div>
+        <div className="flex flex-col sm:flex-row gap-5 justify-center mb-16">
+          <button onClick={() => navigate("/login")} className="px-10 py-4 bg-cyan-500 text-[#050a1a] rounded-lg font-bold text-sm hover:bg-white transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
+            Get Started
+          </button>
+          <button onClick={() => navigate("/login")} className="px-10 py-4 bg-white/5 border border-white/10 rounded-lg font-bold text-sm hover:bg-white/10 transition-all backdrop-blur-md active:scale-95">
+            Login to Portal
+          </button>
+        </div>
 
-      {/* Technical Process Section */}
-      <div className="space-y-16 py-20 border-t border-white/5">
-         <div className="flex flex-col md:flex-row gap-12 items-center">
-            <div className="flex-1 space-y-6">
-               <h2 className="text-4xl font-black uppercase tracking-tighter italic">Easy 3-Step <br/> Process</h2>
-               <p className="text-slate-500 font-bold leading-relaxed uppercase text-sm">
-                  Our app works in three easy steps to give you the best results:
-               </p>
-               <ul className="space-y-4">
-                  <WorkflowStep text="Upload the X-ray image from your computer." />
-                  <WorkflowStep text="The AI finds over 50 important points for you." />
-                  <WorkflowStep text="Review the results and save your report." />
-               </ul>
+        {/* Restore Hero Image Center */}
+        <div className="max-w-4xl mx-auto relative group animate-float">
+           <div className="absolute inset-0 bg-cyan-500/10 blur-[120px] rounded-full opacity-30"></div>
+           <img 
+             src="/images/skull_medical_analysis.png" 
+             alt="Clinical AI Analysis" 
+             className="w-full h-auto rounded-[2rem] border border-white/10 shadow-3xl grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" 
+           />
+        </div>
+      </section>
+
+      {/* 2. STATS BAR */}
+      <section className="border-y border-white/5 bg-white/[0.02] backdrop-blur-md py-12">
+         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 text-center">
+            <div className="space-y-2">
+               <div className="text-4xl font-bold text-white">2.4<span className="text-sm font-medium text-slate-400 ml-1">s</span></div>
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Analysis Speed</p>
             </div>
-            <div className="flex-1 w-full p-8 rounded-[3.5rem] bg-white/5 border border-white/10 relative overflow-hidden group shadow-inner">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-               <BarChart3 size={200} className="mx-auto text-white/5 group-hover:text-white/10 transition-colors" />
+            <div className="space-y-2">
+               <div className="text-4xl font-bold text-white">11 / 19</div>
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Anatomical Benchmarks</p>
             </div>
          </div>
-      </div>
+      </section>
 
-      {/* CTA Footer */}
-      <div className="rounded-[4rem] p-12 md:p-24 bg-white/5 border border-white/10 text-center relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-        <h2 className="text-4xl md:text-6xl font-black mb-8 leading-none uppercase italic">Ready to use <br/> Smart AI?</h2>
-        <button 
-          onClick={() => navigate("/login")}
-          className="px-12 py-6 bg-indigo-600 text-white rounded-[2rem] font-black hover:bg-black transition-all flex items-center justify-center gap-3 mx-auto text-lg shadow-2xl shadow-indigo-500/20 uppercase tracking-widest italic"
-        >
-          Get Started Now
-          <ArrowRight size={24} />
-        </button>
-      </div>
+      {/* 3. PRECISION SUITE */}
+      <section className="py-32 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-20">
+           <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Precision Suite</h2>
+           <h3 className="text-4xl md:text-6xl font-bold tracking-tight leading-none mb-6">Engineered for Precision</h3>
+           <p className="text-slate-500 max-w-xl mx-auto font-medium">Harness the power of neural networks trained for specialized anatomical precision.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+           <FeatureCard 
+             icon={<Cpu size={32} />}
+             title="Neural Landmark Detection"
+             desc="Our proprietary AI identifies 11 and 19 diagnostic landmarks in seconds with sub-millimeter clinical accuracy."
+             highlight
+           />
+           <FeatureCard 
+             icon={<Layers size={32} />}
+             title="Automated Classification"
+             desc="Instantly analyze skeletal patterns and dentofacial relationships with peer-validated clinical models."
+           />
+           <FeatureCard 
+             icon={<Activity size={32} />}
+             title="Airway Analysis"
+             desc="Identify pharyngeal space restrictions with AI-assisted 2D volumetric estimations for surgical planning."
+           />
+           <FeatureCard 
+             icon={<ClipboardList size={32} />}
+             title="Interactive Adjustments"
+             desc="Maintain complete clinical control. Refine AI-suggested points ensure your expert judgment is final."
+           />
+        </div>
+      </section>
+
+      {/* 4. WORKFLOW SECTION */}
+      <section className="py-32 bg-white/[0.01] border-y border-white/5 backdrop-blur-sm">
+         <div className="max-w-7xl mx-auto px-6 text-center">
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-16">Seamless Clinical Workflow</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
+               <WorkflowIcon icon={<FileText size={24} />} label="Upload" desc="DICOM/JPEG Secure Intake" />
+               <WorkflowIcon icon={<Layers size={24} />} label="Convert" desc="AI-Powered Point Mapping" />
+               <WorkflowIcon icon={<Share2 size={24} />} label="Adjust" desc="Precision Clinical Tuning" />
+               <WorkflowIcon icon={<CheckCircle2 size={24} />} label="Export" desc="Ready Analysis Reports" />
+            </div>
+         </div>
+      </section>
+
+      {/* 5. PRACTICE ELEVATION */}
+      <section className="py-32 px-6 max-w-7xl mx-auto">
+         <div className="flex flex-col lg:flex-row items-center gap-20">
+            <div className="flex-1 space-y-10">
+               <div>
+                  <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">The Clinical Advantage</h2>
+                  <h3 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1]">Elevate Your Practice Standard</h3>
+               </div>
+               
+               <div className="space-y-6">
+                  <BenefitItem title="Eliminate Inter-Observer Variability" desc="Consistent results every time, regardless of the clinician performing the analysis." />
+                  <BenefitItem title="60% Reduction in Analysis Time" desc="Reclaim hours each week by automating manual tracing and clinical calculations." />
+                  <BenefitItem title="Patient Engagement Score" desc="Communicate treatment plans more effectively with clear visual AI-augmented reports." />
+               </div>
+            </div>
+            
+            <div className="flex-1 w-full max-w-xl">
+               <div className="relative rounded-[3rem] overflow-hidden border border-white/10 shadow-3xl">
+                  <img src="/images/doctor_clinical_review.png" alt="Clinical Workflow" className="w-full h-auto opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#020408] via-transparent to-transparent opacity-60"></div>
+               </div>
+            </div>
+         </div>
+      </section>
+
+      {/* 6. CTA FOOTER */}
+      <section className="py-32 px-6">
+         <div className="max-w-5xl mx-auto bg-gradient-to-br from-indigo-900/20 to-cyan-900/20 border border-white/10 rounded-[3rem] p-12 md:p-24 text-center backdrop-blur-xl">
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-8">Ready for the Future?</h2>
+            <p className="text-slate-400 max-w-lg mx-auto font-medium mb-12">Join modern practices worldwide using CephaloAI for clinical diagnostics and superior patient outcomes.</p>
+            <div className="flex flex-col sm:flex-row gap-5 justify-center">
+              <button onClick={() => navigate("/login")} className="px-12 py-5 bg-cyan-500 text-[#050a1a] rounded-lg font-bold hover:bg-white transition-all shadow-xl shadow-cyan-500/20 active:scale-95">
+                Create Free Account
+              </button>
+              <button onClick={() => navigate("/login")} className="px-12 py-5 bg-transparent border border-white/20 text-white rounded-lg font-bold hover:bg-white/5 transition-all active:scale-95">
+                Schedule Demo
+              </button>
+            </div>
+         </div>
+      </section>
+
+      {/* 7. FOOTER */}
+      <footer className="py-20 px-6 max-w-7xl mx-auto border-t border-white/5 backdrop-blur-sm">
+         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
+            <div className="space-y-6">
+               <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+                     <Activity className="text-white" size={16} strokeWidth={3} />
+                  </div>
+                  <span className="text-xl font-bold tracking-tight">CephaloAI</span>
+               </div>
+               <p className="text-xs text-slate-500 leading-relaxed uppercase tracking-wider font-bold">Bringing anatomical precision to clinical orthodontics.</p>
+            </div>
+            
+            <FooterColumn title="Product" links={["Features", "Integrations", "API Access", "Pricing"]} />
+            <FooterColumn title="Legal" links={["HIPAA Compliance", "Privacy Policy", "Terms of Service", "Security"]} />
+            <FooterColumn title="Company" links={["About Us", "Careers", "Clinical Data", "Contact"]} />
+         </div>
+         
+         <div className="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-white/5 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">
+            <p>© 2026 CEPHALO AI CLINICAL SYSTEMS. ALL RIGHTS RESERVED.</p>
+            <div className="flex gap-8 mt-6 md:mt-0">
+               <Share2 size={16} className="hover:text-white cursor-pointer transition-colors" />
+               <Activity size={16} className="hover:text-white cursor-pointer transition-colors" />
+               <Laptop size={16} className="hover:text-white cursor-pointer transition-colors" />
+            </div>
+         </div>
+      </footer>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, desc }) {
+function FeatureCard({ icon, title, desc, highlight }) {
   return (
-    <div className="p-10 rounded-[3rem] bg-white/5 border border-white/5 hover:border-white/10 transition-all group shadow-inner">
-      <div className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-inner">
+    <div className={`p-10 rounded-[2rem] border transition-all group backdrop-blur-md ${highlight ? 'bg-white/[0.03] border-cyan-500/30 shadow-lg shadow-cyan-500/5' : 'bg-transparent border-white/5 hover:border-white/20'}`}>
+      <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-8 ${highlight ? 'bg-cyan-500 text-[#050a1a]' : 'bg-white/5 text-slate-300'} group-hover:scale-110 transition-transform`}>
         {icon}
       </div>
-      <h3 className="text-2xl font-black mb-4 uppercase tracking-tight italic">{title}</h3>
-      <p className="text-slate-500 font-bold leading-relaxed group-hover:text-slate-400 transition-colors uppercase text-sm">{desc}</p>
+      <h4 className="text-xl font-bold text-white mb-4 tracking-tight">{title}</h4>
+      <p className="text-sm text-slate-500 font-medium leading-relaxed group-hover:text-slate-400 transition-colors">{desc}</p>
     </div>
   );
 }
 
-function WorkflowStep({ text }) {
-  return (
-    <li className="flex items-center gap-4 text-slate-400 font-bold group">
-      <div className="w-8 h-8 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
-        <CheckCircle2 size={16} fill="currentColor" />
+function WorkflowIcon({ icon, label, desc }) {
+   return (
+      <div className="flex flex-col items-center text-center space-y-4">
+         <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 shadow-inner backdrop-blur-md">
+            {icon}
+         </div>
+         <div className="space-y-1">
+            <h5 className="font-bold text-white tracking-tight">{label}</h5>
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">{desc}</p>
+         </div>
       </div>
-      <span className="uppercase tracking-tight text-sm">{text}</span>
-    </li>
-  );
+   );
+}
+
+function BenefitItem({ title, desc }) {
+   return (
+      <div className="flex gap-4 group">
+         <div className="mt-1.5 w-5 h-5 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 group-hover:bg-cyan-500 group-hover:text-[#050a1a] transition-all">
+            <CheckCircle2 size={12} />
+         </div>
+         <div>
+            <h5 className="font-bold text-white mb-1">{title}</h5>
+            <p className="text-sm text-slate-500">{desc}</p>
+         </div>
+      </div>
+   );
+}
+
+function FooterColumn({ title, links }) {
+   const navigate = useNavigate();
+   
+   const handleLink = (link) => {
+      console.log("Navigating to:", link);
+      const l = link.toLowerCase();
+      
+      // Force scroll to top on any navigation
+      window.scrollTo({ top: 0, behavior: 'auto' });
+
+      if (["features", "integrations", "api access", "pricing"].includes(l)) {
+         navigate("/lm");
+      } else if (["about us", "contact", "clinical data", "careers", "hipaa compliance", "privacy policy", "terms of service", "security"].includes(l)) {
+         navigate("/");
+      } else {
+         navigate("/");
+      }
+   };
+
+   return (
+      <div className="space-y-6">
+         <h5 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">{title}</h5>
+         <ul className="space-y-4">
+            {links.map(l => (
+               <li 
+                 key={l} 
+                 onClick={() => handleLink(l)}
+                 className="text-xs text-slate-500 hover:text-cyan-400 cursor-pointer transition-all duration-200 font-bold uppercase tracking-widest flex items-center gap-2 group"
+               >
+                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 scale-0 group-hover:scale-100 transition-transform"></span>
+                 {l}
+               </li>
+            ))}
+         </ul>
+      </div>
+   );
 }

@@ -173,27 +173,38 @@ def full_angle(v1, v2):
 
     return theta   # NO conversion
 
-def compute_angles(landmarks):
+def compute_angles(landmarks, image_bytes):
+    """
+    Computes cephalometric angles in pixel space to account for image aspect ratio.
+    Aligns with frontend live telemetry.
+    """
+    img = Image.open(io.BytesIO(image_bytes))
+    w, h = img.size
 
-    P = {p["name"]: np.array([p["x"], p["y"]]) for p in landmarks}
+    # Convert normalized -> pixel coords for accurate angle calculation
+    P = {}
+    for p in landmarks:
+        P[p["name"]] = np.array([float(p["x"]) * w, float(p["y"]) * h])
 
     try:
         # Lines
-        SN = P["P2"] - P["P1"]       # S -> N
+        SN = P["P1"] - P["P2"]       # N -> S
         NA = P["P5"] - P["P2"]       # N -> A
         NB = P["P6"] - P["P2"]       # N -> B
         GoGn = P["P9"] - P["P10"]    # Go -> Gn
 
-        # Skeletal angles
+        # Skeletal angles (using acute angle 0-90 where appropriate)
         SNA = angle(NA, SN)
         SNB = angle(NB, SN)
         ANB = SNA - SNB
-        SN_GoGn = full_angle(SN, GoGn)
+        
+        # SN to GoGn: use angle() for acute 0-90 consistency with frontend getLineAngle
+        SN_GoGn = angle(SN, GoGn)
 
-        # YEN angle
-        YEN =  full_angle(
-            P["P1"] - P["P22"],
-            P["P23"] - P["P22"]
+        # YEN angle: interior angle (0-180) at vertex M (P22)
+        YEN = full_angle(
+            P["P1"] - P["P22"],  # M -> S
+            P["P23"] - P["P22"]  # M -> G
         )
 
         return {
@@ -443,7 +454,7 @@ def predict_clinical_landmarks_only(image_bytes, ceph_id):
 
 def process_clinical_finalize(image_bytes, ceph_id, edited_landmarks):
 
-    angles = compute_angles(edited_landmarks)
+    angles = compute_angles(edited_landmarks, image_bytes)
     clinical_results = clinical_classify(angles)
     airway = compute_airway(edited_landmarks, image_bytes)
     airway_class = classify_airway(airway["upper_airway"])
@@ -493,7 +504,7 @@ def predict_landmarks_only(image_bytes, ceph_id):
 # ==================================================
 def process_ml_finalize(image_bytes, ceph_id, landmarks):
 
-    angles = compute_angles(landmarks)
+    angles = compute_angles(landmarks, image_bytes)
     clinical_results = clinical_classify(angles)
     airway = compute_airway(landmarks, image_bytes)
     airway_class = classify_airway(airway["upper_airway"])
