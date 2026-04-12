@@ -19,7 +19,7 @@ pwd_context = CryptContext(
     deprecated="auto"
 )
 
-SECRET = os.getenv("JWT_SECRET", "supersecret")
+SECRET = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY") or "supersecret"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
 

@@ -10,13 +10,14 @@ from app import models, utils
 from datetime import datetime
 
 # Expanded Master Node Emails
-MASTER_HOSTS = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"]
-MASTER_PASS = "Guru@123"
+MASTER_HOSTS = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com","mohithanand24@gmail.com"]
+MASTER_PASS = "Mogi@123"
 
 def initialize_hosts():
     db = SessionLocal()
     try:
         for email in MASTER_HOSTS:
+            email = email.lower()
             print(f"Initializing host: {email}...")
             
             # Check if user already exists

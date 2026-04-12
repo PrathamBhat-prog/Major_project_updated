@@ -241,9 +241,9 @@ Commercial deployment requires proper licensing and validation.
 
 ---
 
-# 👨‍💻 Author
+# 👨‍💻 Authors
 
-Gurunathagouda M Biradar  
+Abhay Vijay Goudar,Gurunathagouda M Biradar,Mohith Anand,Pratham Bhat
 B.E. Artificial Intelligence & Machine Learning  
 AI-Based Cephalometric Analysis System  
 

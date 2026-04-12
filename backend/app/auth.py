@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from . import models, schemas, database, utils
 
-MASTER_HOST_LIST = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"]
+MASTER_HOST_LIST = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com", "mohithanand24@gmail.com"]
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -20,6 +20,7 @@ def get_db():
 # ================= REGISTER =================
 @router.post("/register", response_model=schemas.UserOut)
 def register(u: schemas.UserCreate, db: Session = Depends(get_db)):
+    u.username = u.username.lower()
     existing = db.query(models.User).filter(models.User.username == u.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -28,7 +29,7 @@ def register(u: schemas.UserCreate, db: Session = Depends(get_db)):
 
     # 🔥 ADMIN APPROVAL LOGIC
     is_approved = True
-    if u.role == "admin" and u.username != "guru819773@gmail.com":
+    if u.role == "admin" and u.username not in MASTER_HOST_LIST:
         is_approved = False
 
     user = models.User(
@@ -48,8 +49,8 @@ def register(u: schemas.UserCreate, db: Session = Depends(get_db)):
 # ================= LOGIN =================
 @router.post("/token", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-
-    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    username = form_data.username.lower()
+    user = db.query(models.User).filter(models.User.username == username).first()
 
     if not user or not utils.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
@@ -87,7 +88,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 # ================= FORGOT PASSWORD =================
 @router.post("/forgot-password")
 def forgot_password(req: schemas.PasswordResetRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == req.email).first()
+    email = req.email.lower()
+    user = db.query(models.User).filter(models.User.username == email).first()
     if not user:
         # Don't reveal user existence for security, just return success
         return {"message": "If this email is registered, a reset link has been sent."}
