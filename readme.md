@@ -77,7 +77,7 @@ Any reproduction or usage without written permission from the author is strictly
 
 ## 👨‍💻 Author
 
-Gurunathagouda M Biradar  
+Abhay Vijay Goudar,Gurunathagouda M Biradar,Mohith Anand,Pratham Bhat  
 B.E. Artificial Intelligence & Machine Learning  
 Major Project – CephAI  
 

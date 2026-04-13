@@ -131,7 +131,7 @@ export default function ProfileSetup() {
           value={form.full_name}
           onChange={handleChange}
           placeholder="Full Name"
-          className="w-full p-3 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="w-full p-3 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-900"
         />
 
         {/* PHONE */}
@@ -140,7 +140,7 @@ export default function ProfileSetup() {
           value={form.phone}
           onChange={handleChange}
           placeholder="Phone Number"
-          className="w-full p-3 border rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="w-full p-3 border rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-900"
         />
 
         {/* SUBMIT */}
