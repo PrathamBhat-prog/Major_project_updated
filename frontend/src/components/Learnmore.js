@@ -32,8 +32,8 @@ export default function Learnmore() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-5 justify-center mb-16">
-          <button onClick={() => navigate("/login")} className="px-10 py-4 bg-cyan-500 text-[#050a1a] rounded-lg font-bold text-sm hover:bg-white transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
-            Get Started
+          <button onClick={() => navigate("/demo")} className="px-10 py-4 bg-cyan-500 text-[#050a1a] rounded-lg font-bold text-sm hover:bg-white transition-all shadow-lg shadow-cyan-500/20 active:scale-95">
+            Try Free Demo
           </button>
           <button onClick={() => navigate("/login")} className="px-10 py-4 bg-white/5 border border-white/10 rounded-lg font-bold text-sm hover:bg-white/10 transition-all backdrop-blur-md active:scale-95">
             Login to Portal
@@ -145,8 +145,8 @@ export default function Learnmore() {
               <button onClick={() => navigate("/login")} className="px-12 py-5 bg-cyan-500 text-[#050a1a] rounded-lg font-bold hover:bg-white transition-all shadow-xl shadow-cyan-500/20 active:scale-95">
                 Create Free Account
               </button>
-              <button onClick={() => navigate("/login")} className="px-12 py-5 bg-transparent border border-white/20 text-white rounded-lg font-bold hover:bg-white/5 transition-all active:scale-95">
-                Schedule Demo
+              <button onClick={() => navigate("/demo")} className="px-12 py-5 bg-transparent border border-white/20 text-white rounded-lg font-bold hover:bg-white/5 transition-all active:scale-95">
+                Launch Instant Demo
               </button>
             </div>
          </div>

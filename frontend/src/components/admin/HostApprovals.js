@@ -20,7 +20,8 @@ export default function HostApprovals() {
 
       if (allRes.ok) {
         const allUsers = await allRes.json();
-        const masterEmails = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"];
+        const masterEmailsEnv = process.env.REACT_APP_MASTER_EMAILS || "";
+        const masterEmails = masterEmailsEnv ? masterEmailsEnv.split(",").map(e => e.trim().toLowerCase()) : [];
         // Filter only other admins (approved)
         setAdmins(allUsers.filter(u => u.role === "admin" && u.is_approved && !masterEmails.includes(u.username.toLowerCase())));
       }
@@ -48,7 +49,8 @@ export default function HostApprovals() {
     } catch (err) { console.error(err); }
   };
 
-  const masterEmails = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"];
+  const masterEmailsEnv = process.env.REACT_APP_MASTER_EMAILS || "";
+  const masterEmails = masterEmailsEnv ? masterEmailsEnv.split(",").map(e => e.trim().toLowerCase()) : [];
   if (!masterEmails.includes(currentUser?.username?.toLowerCase())) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50 p-10">

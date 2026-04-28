@@ -37,10 +37,10 @@ const CephalometricBackground = () => {
               <ChevronRight size={18} />
             </button>
             <button 
-              onClick={() => navigate("/lm")} 
+              onClick={() => navigate("/demo")} 
               className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-xl font-bold transition-all hover:bg-white/10 flex items-center justify-center gap-2 text-sm backdrop-blur-md active:scale-95"
             >
-              Explore Capabilities
+              Try Demo (No Login)
             </button>
           </div>
 

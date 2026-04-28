@@ -26,7 +26,8 @@ export default function AdminDashboard() {
   const [pendingAdmins, setPendingAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const masterEmails = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"];
+  const masterEmailsEnv = process.env.REACT_APP_MASTER_EMAILS || "";
+  const masterEmails = masterEmailsEnv ? masterEmailsEnv.split(",").map(e => e.trim().toLowerCase()) : [];
   const isMaster = masterEmails.includes(currentUser?.username?.toLowerCase());
 
   // ================= MAIN DATA FETCH (30s POLLING) =================

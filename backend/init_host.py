@@ -10,8 +10,12 @@ from app import models, utils
 from datetime import datetime
 
 # Expanded Master Node Emails
-MASTER_HOSTS = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com","mohithanand24@gmail.com"]
-MASTER_PASS = "Mogi@123"
+import os
+MASTER_HOSTS_ENV = os.getenv("MASTER_EMAILS", "")
+MASTER_HOSTS = [email.strip().lower() for email in MASTER_HOSTS_ENV.split(",")] if MASTER_HOSTS_ENV else []
+MASTER_PASS = os.getenv("MASTER_PASS")
+if not MASTER_PASS:
+    print("Warning: MASTER_PASS is not set in environment!")
 
 def initialize_hosts():
     db = SessionLocal()

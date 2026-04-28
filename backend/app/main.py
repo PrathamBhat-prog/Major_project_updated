@@ -6,6 +6,7 @@ import io
 import time
 import os
 import json
+import base64
 from dotenv import load_dotenv
 
 from . import models, schemas, database, utils, auth, ml_inference
@@ -199,6 +200,67 @@ async def ml_finalize(
         start,
         user.id
     )
+
+@app.post("/demo/quick-analyze")
+async def demo_quick_analyze(
+    mode: str = Form(...),
+    file: UploadFile = File(...)
+):
+    image_bytes = await file.read()
+    
+    # 1. Run initial prediction
+    if mode == "clinical":
+        preview = ml_inference.predict_clinical_landmarks_only(image_bytes, "demo_quick")
+        result = ml_inference.process_clinical_finalize(
+            image_bytes=image_bytes,
+            ceph_id="demo_quick",
+            edited_landmarks=preview["landmarks"]
+        )
+    else:
+        preview = ml_inference.predict_landmarks_only(image_bytes, "demo_quick")
+        result = ml_inference.process_ml_finalize(
+            image_bytes=image_bytes,
+            ceph_id="demo_quick",
+            landmarks=preview["landmarks"]
+        )
+    
+    # 2. Encode image
+    with open(result["output_image"], "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+        
+    return {
+        "landmarks": result["landmarks"],
+        "angles": result["angles"],
+        "skeletal_class": result["skeletal_class"],
+        "maxilla_status": result.get("maxilla_status"),
+        "mandible_status": result.get("mandible_status"),
+        "divergence_status": result.get("divergence_status"),
+        "airway": result.get("airway"),
+        "airway_class": result.get("airway_class"),
+        "output_image": f"data:image/jpeg;base64,{encoded}"
+    }
+
+@app.post("/demo/clinical-preview")
+async def demo_clinical_preview(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    result = ml_inference.predict_clinical_landmarks_only(image_bytes, "demo_public")
+    with open(result["preview_image"], "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+    return {
+        "landmarks": result["landmarks"],
+        "preview_image": f"data:image/jpeg;base64,{encoded}"
+    }
+
+@app.post("/demo/ml-preview")
+async def demo_ml_preview(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    result = ml_inference.predict_landmarks_only(image_bytes, "demo_public")
+    with open(result["preview_image"], "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+    return {
+        "landmarks": result["landmarks"],
+        "preview_image": f"data:image/jpeg;base64,{encoded}"
+    }
 
 # ==================================================
 # FINALIZE FUNCTION (UNCHANGED)

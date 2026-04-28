@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from . import models, schemas, database, utils
 
-MASTER_HOST_LIST = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com", "mohithanand24@gmail.com"]
+import os
+
+MASTER_HOSTS_ENV = os.getenv("MASTER_EMAILS", "")
+MASTER_HOST_LIST = [email.strip().lower() for email in MASTER_HOSTS_ENV.split(",")] if MASTER_HOSTS_ENV else []
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -228,8 +231,6 @@ def get_unread_total(current_user: models.User = Depends(get_current_user), db: 
 # =========================================================
 # 🛡️ ADMIN APPROVAL ENDPOINTS
 # =========================================================
-
-MASTER_HOST_EMAIL = "guru819773@gmail.com"
 
 @router.get("/admin/pending-approvals", response_model=List[schemas.UserOut])
 def get_pending_admins(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):

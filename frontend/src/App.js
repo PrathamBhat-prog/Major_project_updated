@@ -37,6 +37,8 @@ import Appointments from "./components/doctor/Appointments";
 import CephalometricModel from "./components/CephalometricModel";
 import Lm from "./components/Learnmore";
 import PatientRegistrationForm from "./components/public/PatientRegistrationForm";
+import DemoUpload from "./components/demo/DemoUpload";
+import DemoResult from "./components/demo/DemoResult";
 
 import { AuthContext } from "./context/AuthContext";
 import "./index.css";
@@ -73,6 +75,8 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/lm" element={<Lm />} />
+          <Route path="/demo" element={<DemoUpload />} />
+          <Route path="/demo/result" element={<DemoResult />} />
           <Route path="/register-patient/:doctorId" element={<PatientRegistrationForm />} />
           <Route path="/profile-setup" element={
             currentUser ? <ProfileSetup /> : <Navigate to="/login" replace />
@@ -104,7 +108,8 @@ export default function App() {
         <Route path="/admin/host-approvals" element={
           <ProtectedRoute role="admin">
             {(() => {
-              const masterEmails = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"];
+              const masterEmailsEnv = process.env.REACT_APP_MASTER_EMAILS || "";
+              const masterEmails = masterEmailsEnv ? masterEmailsEnv.split(",").map(e => e.trim().toLowerCase()) : [];
               return masterEmails.includes(currentUser?.username?.toLowerCase()) ? (
                 <AdminLayout><HostApprovals /></AdminLayout>
               ) : (

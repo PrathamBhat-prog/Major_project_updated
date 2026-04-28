@@ -11,14 +11,16 @@ load_dotenv()
 # =====================================================
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-# ✅ Hardcoded or prioritized user's requested email
-SMTP_EMAIL = os.getenv("SMTP_EMAIL", "guru819773@gmail.com")
+# ✅ SMTP_EMAIL will now default to empty if not set in .env
+SMTP_EMAIL = os.getenv("SMTP_EMAIL", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_EMAIL)
 
 def send_email(to_email: str, subject: str, body: str):
-    if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print("CRITICAL: SMTP credentials not configured. Email NOT sent.")
+    # ❌ Check for missing or placeholder credentials
+    if not SMTP_EMAIL or not SMTP_PASSWORD or "your_16_digit" in SMTP_PASSWORD:
+        print(f"⚠️  EMAIL LOG: To={to_email} | Subject={subject}")
+        print("CRITICAL: SMTP credentials not configured correctly in .env. Email NOT sent.")
         return False
 
     msg = EmailMessage()

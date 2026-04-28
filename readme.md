@@ -17,6 +17,7 @@ This project includes:
 ---
 
 ## 🔒 Confidential Notice
+**⚠️ CONFIDENTIAL PROJECT – ALL RIGHTS RESERVED**
 
 This repository contains proprietary intellectual property.
 
@@ -52,38 +53,54 @@ Core Innovations Include:
 
 ---
 
-## 📊 Output Capabilities
+## 🚀 Getting Started
 
-The system generates:
+### Prerequisites
+- Python 3.9+
+- Node.js 16+
 
-- Skeletal classification (Class I / II / III)
-- Cephalometric angles (SNA, SNB, ANB, etc.)
-- Maxilla & Mandible assessment
-- Divergence pattern
-- Airway measurements
-- Annotated cephalogram
-- PDF diagnostic report
-- Master clinical Excel sheet
+### 1. Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm start
+```
+
+### 3. Environment Configuration
+Create a `.env` file in `backend/`:
+```env
+DATABASE_URL=sqlite:///./ceph.db
+SECRET_KEY=your_secure_random_key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
 
 ---
 
-## 📌 Intellectual Property Status
-
-This project is intended for patent protection.
-
-Any reproduction or usage without written permission from the author is strictly prohibited.
-
----
-
-## 👨‍💻 Author
-
-Abhay Vijay Goudar,Gurunathagouda M Biradar,Mohith Anand,Pratham Bhat  
-B.E. Artificial Intelligence & Machine Learning  
-Major Project – CephAI  
+## 🧪 Demo Mode
+A public **Demo Mode** is available for evaluation:
+1. Navigate to `/demo`.
+2. Upload a cephalogram or use the **"Use Sample X-Ray"** dataset.
+3. Observe real-time AI labeling and anatomical measurements.
 
 ---
 
-## 📜 License
+## 👨‍💻 Project Authors
+**Abhay Vijay Goudar | Gurunathagouda M Biradar | Mohith Anand | Pratham Bhat**  
+*B.E. Artificial Intelligence & Machine Learning – Major Project*
 
-This project is licensed under a Proprietary License.
-See LICENSE file for details.
+---
+
+## 📜 Intellectual Property Status
+This project is intended for patent protection. Any reproduction or usage without written permission from the authors is strictly prohibited.
+
+**License**: Proprietary License. See LICENSE file for details.

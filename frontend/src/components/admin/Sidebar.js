@@ -20,7 +20,8 @@ export default function Sidebar() {
   const [profile, setProfile] = useState(null);
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-  const masterEmails = ["guru819773@gmail.com", "gurunathagoudambiradar@gmail.com", "gurunathagouda@gmail.com"];
+  const masterEmailsEnv = process.env.REACT_APP_MASTER_EMAILS || "";
+  const masterEmails = masterEmailsEnv ? masterEmailsEnv.split(",").map(e => e.trim().toLowerCase()) : [];
   const isMaster = masterEmails.includes(currentUser?.username?.toLowerCase());
 
   const menu = [
